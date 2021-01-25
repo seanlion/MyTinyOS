@@ -3,3 +3,6 @@
 
 30.0%	tests/threads/Rubric.alarm
 70.0%	tests/threads/Rubric.priority
+
+# Extra project
+5.0%	tests/threads/condvar/Rubric

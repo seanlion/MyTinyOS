@@ -32,6 +32,8 @@ static struct list ready_list;
 /* ------------------------------ project1 --------------------- */
 // THREAD_BLOCKED 상태의 스레드를 관리하기 위한 리스트 자료구조 추가
 static struct list sleep_list;
+// sleep_list에서 대기중인 스레드들의 wakeup_tick값 중 최소값을 저장
+static int64_t next_tick_to_awake;
 /* ------------------------------ project1 --------------------- */
 
 /* Idle thread. */
@@ -52,8 +54,7 @@ static long long kernel_ticks; /* # of timer ticks in kernel threads. */
 static long long user_ticks;   /* # of timer ticks in user programs. */
 
 /* ------------------------------ project1 --------------------- */
-// sleep_list에서 대기중인 스레드들의 wakeup_tick값 중 최소값을 저장
-static int64_t next_tick_to_awake;
+
 /* ------------------------------ project1 --------------------- */
 
 /* Scheduling. */
@@ -129,10 +130,9 @@ void thread_init(void)
 	
 	list_init(&destruction_req);
 	/*-------------------------- project.1 -----------------------------*/
-	
 	// sleep_list 초기화
 	list_init(&sleep_list);
-
+	next_tick_to_awake = INT64_MAX;
 	/*-------------------------- project.1 -----------------------------*/
 
 	/* Set up a thread structure for the running thread. */
@@ -140,8 +140,6 @@ void thread_init(void)
 	init_thread(initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid();
-	next_tick_to_awake = 9999999;
-	// next_tick_to_awake = INT64_MAX;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -665,19 +663,14 @@ void thread_sleep(int64_t ticks)
 	intr_set_level(old_level);
 }
 
-/* next_tick_to_awake가 깨워야 할 스레드 중 가장 작은 tick을 갖도록 업데이트한다
-1 : sleep일 때, 0 : awake일 때*/
+/* ticks와 next_tick_to_awake를 비교하여 작은 값을 넣는다.*/
 void update_next_tick_to_awake(int64_t ticks)
 {
-	// printf("\njoin : update_next_tick_to_awake\n");
-	// sleep이면 next_tick_to_awake보다 작은지만 체크한다.
-	next_tick_to_awake = (next_tick_to_awake > ticks) ? ticks : next_tick_to_awake;
-	// printf("\ntick : %d, next_tick : %lu\n", ticks, next_tick_to_awake);
+	next_tick_to_awake = MIN(next_tick_to_awake, ticks);
 }
 
 int64_t get_next_tick_to_awake(void)
 {
-	// printf("\njoin : get_next_tick_to_awake\n");
 	return next_tick_to_awake;
 }
 
@@ -685,29 +678,20 @@ int64_t get_next_tick_to_awake(void)
 
 void thread_awake(int64_t ticks)
 {
-	printf("\njoin : thread_awake\n");
-	// next_tick_to_awake = INT64_MAX;
-	next_tick_to_awake = 9999999;
+	next_tick_to_awake = INT64_MAX;
 	struct list_elem *e= list_begin(&sleep_list);
 	struct thread *t;
-	// printf("\nexit : thread_awake\n");
-	// while(e != list_end(&sleep_list))
+
 	for (e ; e != list_end(&sleep_list);)
 	{
 		t = list_entry(e, struct thread, elem);
 		if (t->wakeup_tick <= ticks)
 		{
-			// printf("\nlist_remove\n");
-			// printf("\nthread name : %s, end\n", t->name);
-			// e = list_remove(e);
 			e = list_remove(&t->elem);
 			thread_unblock(t);
 		}
 		else
 		{
-			// printf("\nlist_next\n");
-			// printf("\nthread name : %s, end\n", t->name);
-			// printf("\nnext elem : %p, end\n", e->next);
 			update_next_tick_to_awake(t->wakeup_tick);
 			e = list_next(e);
 		}

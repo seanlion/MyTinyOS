@@ -364,7 +364,8 @@ void thread_yield(void)
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {
-	thread_current()->priority = new_priority;
+	// enum intr_level old_level = intr_disable();
+	// thread_current()->priority = new_priority;
 	thread_current()->init_priority = new_priority;
 	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 	// test_max_priority();
@@ -374,6 +375,7 @@ void thread_set_priority(int new_priority)
 	refresh_priority();
 	donate_priority();
 	test_max_priority();
+	// intr_set_level(old_level);
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 }
 
@@ -779,9 +781,15 @@ void donate_priority (void)
 	while ( cnt < 9 )
 	{
 		cnt++;
-		if (t->wait_on_lock == NULL) break;
+		if (t->wait_on_lock == NULL) 
+		{
+			break;
+		}
 		t = t->wait_on_lock->holder;
+		// if (cur_priority > t->priority)
+		// {
 		t->priority = cur_priority;
+		// }
 	}
 }
 
@@ -792,7 +800,7 @@ void remove_with_lock (struct lock *lock)
 
 	for (e ; e != list_end((&t->donations));)
 	{
-		struct thread *cur = list_entry(e, struct thread, elem);
+		struct thread *cur = list_entry(e, struct thread, donation_elem);
 		if (cur->wait_on_lock == lock)
 		{
 			e = list_remove(e);
@@ -808,10 +816,17 @@ void refresh_priority (void)
 {
 	struct thread *curr = thread_current();
 	curr->priority = curr->init_priority;
-	list_sort(&curr->donations, &cmp_priority, NULL);
-	struct thread *high;
-	high = list_entry(list_begin(&curr->donations), struct thread, elem);
-	curr->priority = high->priority;
+	
+	if (list_empty(&curr->donations) == false)
+	{
+		list_sort(&curr->donations, &cmp_priority, NULL);
+		struct thread *high;
+		high = list_entry(list_front(&curr->donations), struct thread, donation_elem);
+		// if (high->priority > curr->priority)
+		// {
+		curr->priority = high->priority;
+		// }
+	}
 }
 
 

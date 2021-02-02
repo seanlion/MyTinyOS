@@ -201,7 +201,7 @@ lock_acquire (struct lock *lock) {
 
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	struct thread *t = thread_current();
-	if (lock->holder)
+	if (lock->holder != NULL)
 	{
 		t->wait_on_lock = lock;
 		list_push_back(&lock->holder->donations, &t->donation_elem);
@@ -250,7 +250,6 @@ lock_release (struct lock *lock) {
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	remove_with_lock(lock);
 	refresh_priority();
-
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	sema_up (&lock->semaphore);
 }

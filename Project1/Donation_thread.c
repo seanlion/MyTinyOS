@@ -828,8 +828,4 @@ void refresh_priority (void)
 		// }
 	}
 }
-
-
-
-
 /*-------------------------- project.1-Priority Donation -----------------------------*/

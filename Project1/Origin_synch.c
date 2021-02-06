@@ -321,14 +321,3 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 	while (!list_empty (&cond->waiters))
 		cond_signal (cond, lock);
 }
-
-
-/*-------------------------- project.1-Priority Sync -----------------------------*/
-bool cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
-	struct thread *t_a = list_entry(a, struct thread, elem);
-	struct thread *t_b = list_entry(b, struct thread, elem);
-	
-	return (t_a->priority) > (t_b->priority);
-}
-/*-------------------------- project.1-Priority Sync -----------------------------*/

@@ -50,10 +50,23 @@ process_create_initd (const char *file_name) {
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
 
+	/*-------------------------- project.2-Parsing -----------------------------*/
+	// 스레드  이름  파싱
+	char del[] = " ";
+	char *save_ptr = NULL;
+	char *program_name = strtok_r(file_name, del, &save_ptr);
+	/*-------------------------- project.2-Parsing -----------------------------*/
+
 	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	tid = thread_create (program_name, PRI_DEFAULT, initd, fn_copy);
+
+
+
 	if (tid == TID_ERROR)
+	{
 		palloc_free_page (fn_copy);
+		printf("freepage1\n");
+	}
 	return tid;
 }
 
@@ -173,24 +186,47 @@ process_exec (void *f_name) {
 	_if.cs = SEL_UCSEG;
 	_if.eflags = FLAG_IF | FLAG_MBS;
 
-	/*-------------------------- project.2-Parsing -----------------------------*/
-	// 인자들을 띄어쓰기 기준으로 토큰화 및 토큰의 개수 계산
-	// strtok_r() 함수 이용
-	// /* Initialize interrupt frame and load executable. */
-	/*-------------------------- project.2-Parsing -----------------------------*/
-
-
 	/* We first kill the current context */
 	process_cleanup ();
 
-	/* And then load the binary */
-	success = load (file_name, &_if);
+	/*-------------------------- project.2-Parsing -----------------------------*/
+	char *token, *ptr, *last, *name_copy;
+	int token_count = 0;
+	char* arg_list[65];
+	printf("1:%s\n", f_name);
+	strlcpy(name_copy, f_name, strlen(f_name)+1);
+	printf("nc:%s, f_name:%s, \n", name_copy, f_name);
+	token = strtok_r(name_copy, " ", &last);
+	printf("token:%s\n", token);
+	char *tmp_save = token;
+	arg_list[token_count] = token;
+	while ( token != NULL)
+	{
+		token = strtok_r(NULL, " ", &last);
+		token_count ++;
+		arg_list[token_count] = token;
+		printf("arg_list:%s\n", arg_list[token_count]);
+	}
+	/*-------------------------- project.2-Parsing -----------------------------*/
 
+	/* And then load the binary */
+	printf("@@@ %s\n",f_name);
+	success = load (tmp_save, &_if);
 	/* If load failed, quit. */
-	palloc_free_page (file_name);
 	if (!success)
 		return -1;
+		
+	printf("\nreal load passed\n");
+	/*-------------------------- project.2-Parsing -----------------------------*/
+	argument_stack(&arg_list, token_count , &_if);
+	hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
+	/*-------------------------- project.2-Parsing -----------------------------*/
 
+
+
+	palloc_free_page (f_name);
+	printf("freepage2\n");
+	
 	/* Start switched process. */
 	do_iret (&_if);
 	NOT_REACHED ();
@@ -211,6 +247,12 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	int i = 0;
+	while (true)
+	{
+		i ++;
+	}
+	
 	return -1;
 }
 
@@ -336,19 +378,18 @@ load (const char *file_name, struct intr_frame *if_) {
 	bool success = false;
 	int i;
 
+
 	/* Allocate and activate page directory. */
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
 		goto done;
 	process_activate (thread_current ());
-
 	/* Open executable file. */
 	file = filesys_open (file_name);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
-
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
@@ -360,7 +401,6 @@ load (const char *file_name, struct intr_frame *if_) {
 		printf ("load: %s: error loading executable\n", file_name);
 		goto done;
 	}
-
 	/* Read program headers. */
 	file_ofs = ehdr.e_phoff;
 	for (i = 0; i < ehdr.e_phnum; i++) {
@@ -413,7 +453,6 @@ load (const char *file_name, struct intr_frame *if_) {
 				break;
 		}
 	}
-
 	/* Set up stack. */
 	if (!setup_stack (if_))
 		goto done;
@@ -422,8 +461,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	if_->rip = ehdr.e_entry;
 
 	/* TODO: Your code goes here.
-	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 
+	
+	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 	success = true;
 
 done:
@@ -647,9 +687,56 @@ setup_stack (struct intr_frame *if_) {
 
 
 /*-------------------------- project.2-Parsing -----------------------------*/
-void argument_stack(char **parse ,int count ,void **esp)
-유저스택에프로그램이름과인자들을저장하는함수
-parse: 프로그램이름과인자가저장되어있는메모리공간,
-count: 인자의개수,
-esp: 스택포인터를 가리키는 주소
+void argument_stack(char **parse ,int count ,struct intr_frame *if_)
+{
+	void *cur_rsp = if_->rsp;
+	
+	printf("\nrsp : %p\n", if_->rsp);
+	printf("\n*cur_rsp : %p\n", cur_rsp);
+	printf("\narg 1\n");
+	printf("\ncount : %d\n", count);
+	char* tmp[65] ;
+	for (int i = count -1 ; i > -1; i--)
+	{
+		printf("\nparse: %s\n", parse[i]);
+		for (int j = strlen(parse[i]); j > -1 ; j--)
+		{
+			cur_rsp = cur_rsp - sizeof(char);
+			*(char *)cur_rsp = parse[i][j];
+			printf("\nj : %d\n", j);
+			printf("\n1esp : %p\n", cur_rsp);
+			
+		}
+		tmp[i] = cur_rsp;
+		printf("\ni : %d\n", i);
+	}
+
+	printf("\narg 2\n");
+	
+	
+	size_t alignment = (size_t) cur_rsp % 8;
+	printf("\nalignment : %d\n", alignment);
+	printf("\nalign cur_rsp : %p\n", cur_rsp);
+	
+	if (alignment)
+	{
+		cur_rsp = cur_rsp - alignment;
+	}
+	printf("\nesp : %p\n", cur_rsp);
+	printf("\narg 3\n");
+	for (int k = count - 1 ; k > -1 ; k--)
+	{
+		cur_rsp = cur_rsp - sizeof(char*); 
+		*(char *)cur_rsp = tmp[k];
+		printf("\nchar cur_rsp : %p\n", cur_rsp);
+		printf("\nk : %d\n", k);
+	}
+	printf("\narg 4\n");
+	cur_rsp = cur_rsp - sizeof(void *);
+	if_->rsp = cur_rsp;
+	if_->R.rsi = parse;
+	if_->R.rdi = count;
+
+	printf("\narg 5\n");
+}
 /*-------------------------- project.2-Parsing -----------------------------*/

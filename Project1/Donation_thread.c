@@ -373,7 +373,7 @@ void thread_set_priority(int new_priority)
 
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	refresh_priority();
-	donate_priority();
+	// donate_priority();
 	test_max_priority();
 	// intr_set_level(old_level);
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
@@ -479,12 +479,10 @@ init_thread(struct thread *t, const char *name, int priority)
 	strlcpy(t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t)t + PGSIZE - sizeof(void *);
 	t->priority = priority;
-	// t->priority = PRI_DEFAULT;
 	t->magic = THREAD_MAGIC;
 
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	t->init_priority = priority;
-	// t->init_priority = PRI_DEFAULT;
 	list_init(&t->donations);
 	t->wait_on_lock = NULL;
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
@@ -778,6 +776,7 @@ void donate_priority (void)
 	int cnt = 0;
 	struct thread *t = thread_current();
 	int cur_priority = t->priority;
+
 	while ( cnt < 9 )
 	{
 		cnt++;
@@ -785,11 +784,9 @@ void donate_priority (void)
 		{
 			break;
 		}
+
 		t = t->wait_on_lock->holder;
-		// if (cur_priority > t->priority)
-		// {
 		t->priority = cur_priority;
-		// }
 	}
 }
 
@@ -822,10 +819,7 @@ void refresh_priority (void)
 		list_sort(&curr->donations, &cmp_priority, NULL);
 		struct thread *high;
 		high = list_entry(list_front(&curr->donations), struct thread, donation_elem);
-		// if (high->priority > curr->priority)
-		// {
 		curr->priority = high->priority;
-		// }
 	}
 }
 /*-------------------------- project.1-Priority Donation -----------------------------*/

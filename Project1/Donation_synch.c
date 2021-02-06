@@ -209,8 +209,8 @@ lock_acquire (struct lock *lock) {
 	}
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	sema_down (&lock->semaphore);
-	// lock->holder = thread_current ();
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
+	// lock->holder = thread_current ();
 	t->wait_on_lock = NULL;
 	lock->holder = t;
 	/*-------------------------- project.1-Priority Donation -----------------------------*/

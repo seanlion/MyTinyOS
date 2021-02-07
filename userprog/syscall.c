@@ -42,5 +42,19 @@ void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 	printf ("system call!\n");
+	uint64_t arg[7];
+	switch (arg[0]) {
+		case SYS_HALT:
+			halt();
+			break;
+		case SYS_EXIT:
+			exit(arg[1]);
+			break;
+		
+
+
+	}
+
+
 	thread_exit ();
 }

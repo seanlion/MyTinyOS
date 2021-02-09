@@ -193,11 +193,8 @@ process_exec (void *f_name) {
 	char *token, *ptr, *last, *name_copy;
 	int token_count = 0;
 	char* arg_list[65];
-	printf("1:%s\n", f_name);
 	strlcpy(name_copy, f_name, strlen(f_name)+1);
-	printf("nc:%s, f_name:%s, \n", name_copy, f_name);
 	token = strtok_r(name_copy, " ", &last);
-	printf("token:%s\n", token);
 	char *tmp_save = token;
 	arg_list[token_count] = token;
 	while ( token != NULL)
@@ -205,18 +202,15 @@ process_exec (void *f_name) {
 		token = strtok_r(NULL, " ", &last);
 		token_count ++;
 		arg_list[token_count] = token;
-		printf("arg_list:%s\n", arg_list[token_count]);
 	}
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
 	/* And then load the binary */
-	printf("@@@ %s\n",f_name);
 	success = load (tmp_save, &_if);
 	/* If load failed, quit. */
 	if (!success)
 		return -1;
 		
-	printf("\nreal load passed\n");
 	/*-------------------------- project.2-Parsing -----------------------------*/
 	argument_stack(&arg_list, token_count , &_if);
 	hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
@@ -225,7 +219,6 @@ process_exec (void *f_name) {
 
 
 	palloc_free_page (f_name);
-	printf("freepage2\n");
 	
 	/* Start switched process. */
 	do_iret (&_if);
@@ -691,52 +684,40 @@ void argument_stack(char **parse ,int count ,struct intr_frame *if_)
 {
 	void *cur_rsp = if_->rsp;
 	
-	printf("\nrsp : %p\n", if_->rsp);
-	printf("\n*cur_rsp : %p\n", cur_rsp);
-	printf("\narg 1\n");
-	printf("\ncount : %d\n", count);
 	char* tmp[65] ;
 	for (int i = count -1 ; i > -1; i--)
 	{
-		printf("\nparse: %s\n", parse[i]);
 		for (int j = strlen(parse[i]); j > -1 ; j--)
 		{
 			cur_rsp = cur_rsp - sizeof(char);
 			*(char *)cur_rsp = parse[i][j];
-			printf("\nj : %d\n", j);
-			printf("\n1esp : %p\n", cur_rsp);
+
 			
 		}
 		tmp[i] = cur_rsp;
-		printf("\ni : %d\n", i);
-	}
 
-	printf("\narg 2\n");
-	
+	}
+		
 	
 	size_t alignment = (size_t) cur_rsp % 8;
-	printf("\nalignment : %d\n", alignment);
-	printf("\nalign cur_rsp : %p\n", cur_rsp);
+
 	
 	if (alignment)
 	{
 		cur_rsp = cur_rsp - alignment;
 	}
-	printf("\nesp : %p\n", cur_rsp);
-	printf("\narg 3\n");
+
+
+	cur_rsp = cur_rsp - sizeof(char*); 
 	for (int k = count - 1 ; k > -1 ; k--)
 	{
 		cur_rsp = cur_rsp - sizeof(char*); 
-		*(char *)cur_rsp = tmp[k];
-		printf("\nchar cur_rsp : %p\n", cur_rsp);
-		printf("\nk : %d\n", k);
+		*(uint64_t*)cur_rsp = tmp[k];
+
 	}
-	printf("\narg 4\n");
 	cur_rsp = cur_rsp - sizeof(void *);
 	if_->rsp = cur_rsp;
 	if_->R.rsi = parse;
 	if_->R.rdi = count;
-
-	printf("\narg 5\n");
 }
 /*-------------------------- project.2-Parsing -----------------------------*/

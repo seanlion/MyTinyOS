@@ -107,7 +107,9 @@ remove (const char *file) {
 
 int
 open (const char *file) {
-	return syscall1 (SYS_OPEN, file);
+    // debug
+    // printf("SYSCALL fild : %s\n", file);
+	return syscall1 (SYS_OPEN2, file);
 }
 
 int

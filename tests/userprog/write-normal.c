@@ -9,12 +9,17 @@ void
 test_main (void) 
 {
   int handle, byte_cnt;
+    //  printf("\nhandle:%d\n", handle);
+    CHECK (create ("test.txt", sizeof sample - 1), "create \"test.txt\"");
+    CHECK ((handle = open ("test.txt")) > 1, "open \"test.txt\"");
+    /*-------------------------- project.2-System call -----------------------------*/
+    // printf("\nhandle:%d\n", handle);
+    /*-------------------------- project.2-System call -----------------------------*/
 
-  CHECK (create ("test.txt", sizeof sample - 1), "create \"test.txt\"");
-  CHECK ((handle = open ("test.txt")) > 1, "open \"test.txt\"");
 
-  byte_cnt = write (handle, sample, sizeof sample - 1);
-  if (byte_cnt != sizeof sample - 1)
-    fail ("write() returned %d instead of %zu", byte_cnt, sizeof sample - 1);
+
+    byte_cnt = write (handle, sample, sizeof sample - 1);
+    if (byte_cnt != sizeof sample - 1)
+        fail ("write() returned %d instead of %zu", byte_cnt, sizeof sample - 1);
 }
 

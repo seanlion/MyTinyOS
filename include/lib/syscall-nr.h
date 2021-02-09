@@ -11,7 +11,7 @@ enum {
 	SYS_WAIT,                   /* Wait for a child process to die. */
 	SYS_CREATE,                 /* Create a file. */
 	SYS_REMOVE,                 /* Delete a file. */
-	SYS_OPEN,                   /* Open a file. */
+	SYS_OPEN2,                   /* Open a file. */
 	SYS_FILESIZE,               /* Obtain a file's size. */
 	SYS_READ,                   /* Read from a file. */
 	SYS_WRITE,                  /* Write to a file. */

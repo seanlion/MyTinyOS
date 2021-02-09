@@ -20,7 +20,7 @@ void check_address(void *);
 void get_argument(void *, uint64_t *, int);
 void halt (void);
 void exit (int );
-int open (const char *);
+int open2 (const char *);
 bool create(const char * , unsigned);
 bool remove(const char *);
 void seek (int, unsigned);

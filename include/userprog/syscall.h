@@ -11,7 +11,7 @@
 void syscall_init (void);
 
 /*-------------------------- project.2-System Call -----------------------------*/
-struct lock filesys_lock;
+static struct lock filesys_lock;
 typedef int pid_t;
 /*-------------------------- project.2-System Call -----------------------------*/
 
@@ -20,7 +20,7 @@ void check_address(void *);
 void get_argument(void *, uint64_t *, int);
 void halt (void);
 void exit (int );
-int open2 (const char *);
+int open (const char *);
 bool create(const char * , unsigned);
 bool remove(const char *);
 void seek (int, unsigned);

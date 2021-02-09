@@ -14,15 +14,8 @@
 #include "filesys/filesys.h"
 #include "userprog/process.h"
 /*-------------------------- project.2-System call -----------------------------*/
-
-
-
-
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
-
-
-
 /*-------------------------- project.2-System call -----------------------------*/
 
 
@@ -72,9 +65,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// printf ("system call!\n");
     // printf("f->Rsp:%p\n", f->rsp);
     // hex_dump(f->rsp, f->rsp, USER_STACK - f->rsp, true);
-	uint64_t *arg[6];
+    uint64_t number = f->R.rax;
+	// uint64_t *arg[6];
 	check_address(f->rsp);
-	switch (f->R.rax) {
+	switch (number) {
 		case SYS_HALT:
             // printf("halt\n");
 			halt();
@@ -85,21 +79,23 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			// get_argument(f->rsp, arg, 1);
 			exit(f->R.rdi);
 			break;
-		case SYS_CREATE:
+		case SYS_CREATE: {
+
             // printf("create\n");
 			// get_argument(f->rsp, arg, 2);
-			create(f->R.rdi, f->R.rsi);
+			f->R.rax = create(f->R.rdi, f->R.rsi);
 			break;
+        }
 		case SYS_OPEN2: {
 
-            printf("handler open : %s\n", f->R.rdi);
+            // printf("handler open : %s\n", f->R.rdi);
 			// get_argument(f->R.rdi, arg, 1);
-            char * open_arg = (char *)f->R.rdi;
-			open2(open_arg);
+            // char * open_arg = (char *)f->R.rdi;
+			f->R.rax = open(f->R.rdi);
             // printf("rtn_fd:%d\n", rtn_fd);
         }
 			break;
-        case SYS_REMOVE:
+        case SYS_REMOVE: 
             // printf("remove\n");
             // get_argument(f->rsp, arg, 1);
             // remove(f->R.rdi);
@@ -114,21 +110,27 @@ syscall_handler (struct intr_frame *f UNUSED) {
         case SYS_WAIT:
             // printf("wait\n");
             break;
-        case SYS_FILESIZE:
+        case SYS_FILESIZE: {
             // printf("filesize\n");
-            filesize(f->R.rdi);
+            f->R.rax = filesize(f->R.rdi);
             break;
-        case SYS_READ:
+
+        }
+        case SYS_READ: {
+
             // printf("read\n");
-            read (f->R.rdi, f->R.rsi, f->R.rdx);
+            f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
             break;
-        case SYS_WRITE:
+        }
+        case SYS_WRITE:{
+
             // get_argument(f->R.rsi, arg, 3);
             // printf("syscall-write\n");
             // printf("rdi:%d\n", f->R.rdi);
-            write(f->R.rdi, f->R.rsi, f->R.rdx);
+            f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
             // printf("write\n");
             break;
+        }
         case SYS_SEEK:
             // seek (f->R.rdi, f->R.rsi);
             break;
@@ -230,7 +232,11 @@ int write(int fd, void *buffer, unsigned size) {
 
 
 /*-------------------------- project.2-System call -----------------------------*/
-int open2 (const char *file_name) {
+
+int open (const char *file_name) {
+    if (file_name == NULL) {
+        return -1;
+    }
     // printf("open2 file name : %s\n", *file_name);
 	lock_acquire(&filesys_lock);
 	struct file *file = filesys_open(file_name);
@@ -242,7 +248,7 @@ int open2 (const char *file_name) {
     }
     else{
         lock_release(&filesys_lock);
-        return -1;
+        exit(-1);
     }
 }
 /*-------------------------- project.2-System call -----------------------------*/
@@ -268,12 +274,11 @@ int filesize(int fd) {
 
 /*-------------------------- project.2-System call -----------------------------*/
 int read (int fd, void*buffer, unsigned size) {
-    int cur_size;
+    int cur_size = 0;
     char * rd_buf = (char *) buffer;
     // printf("readfd=%d\n", fd);
     lock_acquire(&filesys_lock);
-    if (fd == 0){
-        cur_size = 0;
+    if (fd == STDIN_FILENO){
         rd_buf[cur_size] = input_getc();
         while (cur_size < size && rd_buf[cur_size] != '\n') {
             cur_size ++;
@@ -284,7 +289,12 @@ int read (int fd, void*buffer, unsigned size) {
     }
     else {
         struct file *f = process_get_file(fd);
-        cur_size = file_read(f, buffer, size);
+        if (f != NULL) {
+            cur_size = file_read(f, buffer, size);
+        }
+        else {
+            cur_size = -1;
+        }
     }
     lock_release(&filesys_lock);
     return cur_size;

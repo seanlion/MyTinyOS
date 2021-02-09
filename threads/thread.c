@@ -248,9 +248,11 @@ tid_t thread_create(const char *name, int priority,
     /*-------------------------- project.2-Process -----------------------------*/
 
     /*-------------------------- project.2-System Call -----------------------------*/
-    int fd = 1;
+    t->fd_table[0] = 1;
+    t->fd_table[1] = 1;
+    
     // t->fd_table = palloc_get_multiple(PAL_ZERO, fd);
-    t->next_fd = fd+1;
+    t->next_fd = 2;
     /*-------------------------- project.2-System Call -----------------------------*/
 
 

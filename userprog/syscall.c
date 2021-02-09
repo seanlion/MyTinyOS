@@ -7,10 +7,31 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+
+/*-------------------------- project.2-System call -----------------------------*/
 #include "threads/synch.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
+#include "userprog/process.h"
+/*-------------------------- project.2-System call -----------------------------*/
+
+
+
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
+
+
+
+/*-------------------------- project.2-System call -----------------------------*/
+
+
+
+
+/*-------------------------- project.2-System call -----------------------------*/
+
+
+
 
 /* System call.
  *
@@ -42,10 +63,6 @@ syscall_init (void) {
     /*-------------------------- project.2-System Call -----------------------------*/
     lock_init (&filesys_lock);
     /*-------------------------- project.2-System Call -----------------------------*/
-
-
-
-
 }
 
 /* The main system call interface */
@@ -76,7 +93,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_OPEN:
             // printf("open?????????????\n");
 			// get_argument(f->R.rdi, arg, 1);
-			// open(f->R.rdi);
+			open(f->R.rdi);
 			break;
         case SYS_REMOVE:
             // printf("remove\n");
@@ -204,5 +221,24 @@ int write(int fd, void *buffer, unsigned size) {
     lock_release(&filesys_lock);
     return cur_size;
 
+}
+/*-------------------------- project.2-System call -----------------------------*/
+
+
+/*-------------------------- project.2-System call -----------------------------*/
+int open (const char *file_name) {
+	lock_acquire(&filesys_lock);
+    // printf("open\n");
+	struct file *file = filesys_open(file_name);
+    if (file) {
+        int fd = process_add_file(file);
+        lock_release(&filesys_lock);
+        // printf("openfd=%d\n", fd);
+        return fd;
+    }
+    else{
+        lock_release(&filesys_lock);
+        return -1;
+    }
 }
 /*-------------------------- project.2-System call -----------------------------*/

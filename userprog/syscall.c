@@ -52,6 +52,7 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
+<<<<<<< HEAD
 	// printf ("system call!\n");
     // printf("f->Rsp:%p\n", f->rsp);
     // hex_dump(f->rsp, f->rsp, USER_STACK - f->rsp, true);
@@ -203,5 +204,23 @@ int write(int fd, void *buffer, unsigned size) {
     }
     lock_release(&filesys_lock);
     return cur_size;
+=======
+	printf ("system call!\n");
+	uint64_t arg[7];
+	switch (arg[0]) {
+		case SYS_HALT:
+			halt();
+			break;
+		case SYS_EXIT:
+			exit(arg[1]);
+			break;
+		
+
+
+	}
+
+
+	thread_exit ();
+>>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821
 }
 /*-------------------------- project.2-System call -----------------------------*/

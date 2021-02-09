@@ -184,6 +184,13 @@ process_exec (void *f_name) {
 	_if.cs = SEL_UCSEG;
 	_if.eflags = FLAG_IF | FLAG_MBS;
 
+	/*-------------------------- project.2-Parsing -----------------------------*/
+	// 인자들을 띄어쓰기 기준으로 토큰화 및 토큰의 개수 계산
+	// strtok_r() 함수 이용
+	// /* Initialize interrupt frame and load executable. */
+	/*-------------------------- project.2-Parsing -----------------------------*/
+
+
 	/* We first kill the current context */
 	process_cleanup ();
 
@@ -727,6 +734,7 @@ setup_stack (struct intr_frame *if_) {
 #endif /* VM */
 
 
+<<<<<<< HEAD
 
 
 /*-------------------------- project.2-Parsing -----------------------------*/
@@ -861,3 +869,12 @@ void process_exit(void) {
     process_cleanup();
 }
 /*-------------------------- project.2-System Call -----------------------------*/
+=======
+/*-------------------------- project.2-Parsing -----------------------------*/
+void argument_stack(char **parse ,int count ,void **esp)
+유저스택에프로그램이름과인자들을저장하는함수
+parse: 프로그램이름과인자가저장되어있는메모리공간,
+count: 인자의개수,
+esp: 스택포인터를 가리키는 주소
+/*-------------------------- project.2-Parsing -----------------------------*/
+>>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821

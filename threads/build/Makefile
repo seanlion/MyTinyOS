@@ -8,6 +8,16 @@ include ../../Make.config
 include ../Make.vars
 include ../../tests/Make.tests
 
+<<<<<<< HEAD
+=======
+ifeq ($(DO_TEST_CONDVAR), 1)
+	CPPFLAGS += -DDO_TEST_CONDVAR
+endif
+ifeq ($(DO_TEST_MLFQS), 1)
+	CPPFLAGS += -DDO_TEST_MLFQS
+endif
+
+>>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821
 # Compiler and assembler options.
 os.dsk: CPPFLAGS += -I$(SRCDIR)/lib/kernel
 

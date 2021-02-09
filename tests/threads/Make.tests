@@ -6,7 +6,7 @@ alarm-multiple alarm-simultaneous alarm-priority alarm-zero		\
 alarm-negative priority-change priority-donate-one			\
 priority-donate-multiple priority-donate-multiple2			\
 priority-donate-nest priority-donate-sema priority-donate-lower		\
-priority-fifo priority-preempt priority-sema priority-condvar		\
+priority-fifo priority-preempt priority-sema        \
 priority-donate-chain)
 
 # Sources for tests.
@@ -26,11 +26,17 @@ tests/threads_SRC += tests/threads/priority-donate-lower.c
 tests/threads_SRC += tests/threads/priority-fifo.c
 tests/threads_SRC += tests/threads/priority-preempt.c
 tests/threads_SRC += tests/threads/priority-sema.c
-tests/threads_SRC += tests/threads/priority-condvar.c
 tests/threads_SRC += tests/threads/priority-donate-chain.c
-tests/threads_SRC += tests/threads/mlfqs/mlfqs-load-1.c
-tests/threads_SRC += tests/threads/mlfqs/mlfqs-load-60.c
-tests/threads_SRC += tests/threads/mlfqs/mlfqs-load-avg.c
-tests/threads_SRC += tests/threads/mlfqs/mlfqs-recent-1.c
-tests/threads_SRC += tests/threads/mlfqs/mlfqs-fair.c
-tests/threads_SRC += tests/threads/mlfqs/mlfqs-block.c
+
+ifeq ($(DO_TEST_CONDVAR), 1)
+    tests/threads_SRC += tests/threads/condvar/priority-condvar.c
+endif
+
+ifeq ($(DO_TEST_MLFQS), 1)
+    tests/threads_SRC += tests/threads/mlfqs/mlfqs-load-1.c
+    tests/threads_SRC += tests/threads/mlfqs/mlfqs-load-60.c
+    tests/threads_SRC += tests/threads/mlfqs/mlfqs-load-avg.c
+    tests/threads_SRC += tests/threads/mlfqs/mlfqs-recent-1.c
+    tests/threads_SRC += tests/threads/mlfqs/mlfqs-fair.c
+    tests/threads_SRC += tests/threads/mlfqs/mlfqs-block.c
+endif

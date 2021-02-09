@@ -1,1 +1,6 @@
+<<<<<<< HEAD
 PASS
+=======
+FAIL
+Run didn't shut down properly: no "Timer: # ticks" message
+>>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821

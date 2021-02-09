@@ -9,14 +9,22 @@ Boot complete.
 Executing 'priority-change':
 (priority-change) begin
 (priority-change) Creating a high-priority thread 2.
+<<<<<<< HEAD
 (priority-change) Thread 2 now lowering priority.
 (priority-change) Thread 2 should have just lowered its priority.
 (priority-change) Thread 2 exiting.
+=======
+(priority-change) Thread 2 should have just lowered its priority.
+>>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821
 (priority-change) Thread 2 should have just exited.
 (priority-change) end
 Execution of 'priority-change' complete.
 Timer: 23 ticks
 Thread: 0 idle ticks, 23 kernel ticks, 0 user ticks
+<<<<<<< HEAD
 Console: 689 characters output
+=======
+Console: 603 characters output
+>>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821
 Keyboard: 0 keys pressed
 Powering off...

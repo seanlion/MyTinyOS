@@ -12,7 +12,11 @@ Executing 'alarm-zero':
 (alarm-zero) end
 Execution of 'alarm-zero' complete.
 Timer: 23 ticks
+<<<<<<< HEAD
 Thread: 1 idle ticks, 22 kernel ticks, 0 user ticks
+=======
+Thread: 0 idle ticks, 23 kernel ticks, 0 user ticks
+>>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821
 Console: 425 characters output
 Keyboard: 0 keys pressed
 Powering off...

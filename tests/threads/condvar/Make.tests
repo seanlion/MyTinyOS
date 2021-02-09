@@ -1,0 +1,9 @@
+# -*- makefile -*-
+
+# Test names.
+tests/threads/condvar_TESTS = tests/threads/condvar/priority-condvar
+
+# Sources for tests.
+
+CONDVAR_OUTPUTS = 				\
+tests/threads/condvar/priority-condvar.output

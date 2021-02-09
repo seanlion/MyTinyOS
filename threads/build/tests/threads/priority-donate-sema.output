@@ -8,6 +8,7 @@ Calibrating timer...  157,081,600 loops/s.
 Boot complete.
 Executing 'priority-donate-sema':
 (priority-donate-sema) begin
+<<<<<<< HEAD
 (priority-donate-sema) Thread L acquired lock.
 (priority-donate-sema) Thread L downed semaphore.
 (priority-donate-sema) Thread H acquired lock.
@@ -20,5 +21,13 @@ Execution of 'priority-donate-sema' complete.
 Timer: 24 ticks
 Thread: 0 idle ticks, 24 kernel ticks, 0 user ticks
 Console: 772 characters output
+=======
+(priority-donate-sema) Main thread finished.
+(priority-donate-sema) end
+Execution of 'priority-donate-sema' complete.
+Timer: 23 ticks
+Thread: 0 idle ticks, 23 kernel ticks, 0 user ticks
+Console: 502 characters output
+>>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821
 Keyboard: 0 keys pressed
 Powering off...

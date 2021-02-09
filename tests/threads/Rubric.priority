@@ -4,7 +4,6 @@ Functionality of priority scheduler:
 
 3	priority-fifo
 3	priority-sema
-3	priority-condvar
 
 3	priority-donate-one
 3	priority-donate-multiple

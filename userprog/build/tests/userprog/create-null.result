@@ -1,0 +1,12 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (create-null) begin
+  create-null: exit(-1)
+Differences in `diff -u' format:
+  (create-null) begin
+- create-null: exit(-1)
++ (create-null) create(NULL): 1
++ (create-null) end
++ create-null: exit(0)

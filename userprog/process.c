@@ -733,10 +733,6 @@ setup_stack (struct intr_frame *if_) {
 }
 #endif /* VM */
 
-
-<<<<<<< HEAD
-
-
 /*-------------------------- project.2-Parsing -----------------------------*/
 void argument_stack(char **parse ,int count ,struct intr_frame *if_)
 {
@@ -869,12 +865,3 @@ void process_exit(void) {
     process_cleanup();
 }
 /*-------------------------- project.2-System Call -----------------------------*/
-=======
-/*-------------------------- project.2-Parsing -----------------------------*/
-void argument_stack(char **parse ,int count ,void **esp)
-유저스택에프로그램이름과인자들을저장하는함수
-parse: 프로그램이름과인자가저장되어있는메모리공간,
-count: 인자의개수,
-esp: 스택포인터를 가리키는 주소
-/*-------------------------- project.2-Parsing -----------------------------*/
->>>>>>> 8df2fe65c35db6476baf85cd07f817dc3f56c821

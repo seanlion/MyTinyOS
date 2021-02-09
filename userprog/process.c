@@ -171,8 +171,11 @@ error:
 int
 process_exec (void *f_name) {
     /*-------------------------- project.2-Parsing -----------------------------*/
-	// char *file_name = f_name;
-    char *file_name = palloc_get_page(PAL_ZERO);
+	char *file_name = f_name;
+    // char *file_name = palloc_get_page(PAL_ZERO);
+
+    char *file_static_name[64];
+    memcpy(file_static_name, file_name, strlen(file_name)+1);
     /*-------------------------- project.2-Parsing -----------------------------*/
 	bool success;
 
@@ -210,7 +213,7 @@ process_exec (void *f_name) {
     /*-------------------------- project.2-Parsing -----------------------------*/
 	char *token, *ptr, *last, *name_copy;
 	int token_count = 0;
-	char* arg_list[65];
+	char* arg_list[64];
 	strlcpy(name_copy, f_name, strlen(f_name)+1);
 	token = strtok_r(name_copy, " ", &last);
 	char *tmp_save = token;
@@ -223,7 +226,7 @@ process_exec (void *f_name) {
 	}
 
     success = load (tmp_save, &_if);
-    argument_stack(&arg_list, token_count , &_if);
+    argument_stack(arg_list, token_count , &_if);
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
 
@@ -235,7 +238,10 @@ process_exec (void *f_name) {
 
 	/* If load failed, quit. */
     /*-------------------------- project.2-Parsing -----------------------------*/
-	palloc_free_page (file_name);
+    if(is_kernal_vaddr(file_name)){
+	    palloc_free_page (file_name);
+
+    }
     /*-------------------------- project.2-Parsing -----------------------------*/
 	if (!success)
 		return -1;

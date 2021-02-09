@@ -14,15 +14,8 @@
 #include "filesys/filesys.h"
 #include "userprog/process.h"
 /*-------------------------- project.2-System call -----------------------------*/
-
-
-
-
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
-
-
-
 /*-------------------------- project.2-System call -----------------------------*/
 
 

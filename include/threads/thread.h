@@ -107,9 +107,6 @@ struct thread {
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	
 
-#ifdef USERPROG
-	/* Owned by userprog/process.c. */
-	uint64_t *pml4;                     /* Page map level 4 */
     /*-------------------------- project.2-Parsing -----------------------------*/
     // struct thread *parent_t;
     // struct list_elem child_elem;
@@ -125,6 +122,12 @@ struct thread {
     struct file* fd_table[64];
 
     /*-------------------------- project.2-Parsing -----------------------------*/
+
+
+#ifdef USERPROG
+	/* Owned by userprog/process.c. */
+	uint64_t *pml4;                     /* Page map level 4 */
+
 
 
 

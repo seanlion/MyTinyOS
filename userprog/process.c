@@ -733,46 +733,106 @@ setup_stack (struct intr_frame *if_) {
 }
 #endif /* VM */
 
-/*-------------------------- project.2-Parsing -----------------------------*/
-void argument_stack(char **parse ,int count ,struct intr_frame *if_)
+
+// 새힘
+void argument_stack(char **argv, int argc, struct intr_frame *if_)
 {
-	void* cur_rsp = if_->rsp;
-	char* tmp[65] ;
-	for (int i = count -1 ; i > -1; i--)
-	{
-		for (int j = strlen(parse[i]); j > -1 ; j--)
-		{
-			cur_rsp = cur_rsp - sizeof(char);
-			*(char *)cur_rsp = parse[i][j];
-		}
-		tmp[i] = cur_rsp;
-
-	}
-	
-	size_t alignment = (size_t) cur_rsp % 8;
-
-	
-	if (alignment)
-	{
-		cur_rsp = cur_rsp - alignment;
-	}
-
-	cur_rsp = cur_rsp - sizeof(char *);
-    *(uint64_t*) cur_rsp = 0; 
-	for (int k = count - 1 ; k > -1 ; k--)
-	{
-		cur_rsp = cur_rsp - sizeof(char*); 
-		*(uint64_t*)cur_rsp = tmp[k];
-        // printf("arg[%d] : %s\n", **(char*)cur_rsp
-	}
-	if_->R.rsi = cur_rsp;
-	cur_rsp = cur_rsp - sizeof(void *);
-    // printf("cur_rsp:%p, %s\n", cur_rsp, (char*) cur_rsp);
-	if_->R.rdi = count;
-	if_->rsp = cur_rsp;
-    *(uint64_t *)cur_rsp = 0;
-    // printf("if_->Rsp:%p, %s\n", if_->rsp, (char*) if_->rsp);
+    /* rsp : rsp 주소를 담고있는 공간이다!! REAL rsp : *rsp   */
+    // rsp : stack pointer -- stack을 구분할 수 있는 지점 (== 스택 시작점)
+    /* insert arguments' address */
+    char* argu_address[128];
+    for(int i = argc-1; i >=0; i--)
+    {
+        int argv_len = strlen(argv[i]);
+        /* strlen은 '\0'을 제외한다. */
+        if_->rsp = if_->rsp-(argv_len+1);
+        /* store adress seperately */
+        argu_address[i] = if_->rsp;
+        memcpy(if_->rsp, argv[i], argv_len+1);
+        //이러면 4바이트가 삽입된다.
+        // *(char **)(if_->rsp) = argv[i][j]
+    }
+    /* insert padding for word-align */
+    while(if_->rsp %8 != 0)
+    {
+        if_->rsp --;
+        *(uint8_t *)(if_->rsp) = 0;
+    }
+    /* insert address of strings including sentinel */
+    for (int i = argc; i >= 0; i--)
+    {
+        if_->rsp = if_->rsp - 8;
+        if (i==argc)
+            memset(if_->rsp, 0, sizeof(char**));
+        else
+            memcpy(if_->rsp, &argu_address[i], sizeof(char**));
+            // argu_adress[i]값을 복사하려면, argu_address[i]의 주소를 cpy요소로 넣어라!!
+    }
+    /* fake return address */
+    if_->rsp = if_->rsp-8;
+    memset(if_->rsp,0,sizeof(void*));
+    /*
+    Check this out.
+    if_->rsp = if_->rsp-8;
+    memcpy(if_->rsp, &argc, sizeof(int));
+    if_->rsp -= 8;
+    memcpy(if_->rsp,&argu_address[0],sizeof(char*))
+    */
+    /* We need to check again */
+    if_->R.rdi = argc;
+    if_->R.rsi = if_->rsp+8; /* 이녀석 주의!!! */
 }
+
+
+
+
+
+/*-------------------------- project.2-Parsing -----------------------------*/
+// void argument_stack(char **parse ,int count ,struct intr_frame *if_)
+// {
+// 	void* cur_rsp = if_->rsp;
+// 	char* tmp[65] ;
+// 	for (int i = count -1 ; i > -1; i--)
+// 	{
+// 		// for (int j = strlen(parse[i]); j > -1 ; j--)
+// 		// {
+// 		// 	cur_rsp = cur_rsp - sizeof(char);
+// 		// 	*(char *)cur_rsp = parse[i][j];
+// 		// }
+// 		// tmp[i] = cur_rsp;
+//         int argv_len = strlen(tmp[i]);
+//         if_->rsp = if_->rsp-(argv_len+1);
+//         tmp[i] = if_->rsp;
+//         memcpy(if_->rsp, parse[i], argv_len+1);
+
+
+
+// 	}
+	
+// 	size_t alignment = (size_t) cur_rsp % 8;
+
+	
+// 	if (alignment)
+// 	{
+// 		cur_rsp = cur_rsp - alignment;
+// 	}
+
+// 	cur_rsp = cur_rsp - sizeof(char *);
+//     *(uint64_t*) cur_rsp = 0; 
+// 	for (int k = count - 1 ; k > -1 ; k--)
+// 	{
+// 		cur_rsp = cur_rsp - sizeof(char*); 
+// 		*(uint64_t*)cur_rsp = tmp[k];
+//         // printf("arg[%d] : %s\n", **(char*)cur_rsp
+// 	}
+// 	if_->R.rsi = cur_rsp;
+// 	cur_rsp = cur_rsp - sizeof(void *);
+//     // printf("cur_rsp:%p, %s\n", cur_rsp, (char*) cur_rsp);
+// 	if_->R.rdi = count;
+// 	if_->rsp = cur_rsp;
+//     *(uint64_t *)cur_rsp = 0;
+//     // printf("if_->Rsp:%p, %s\n", if_->rsp, (char*) if_->rsp);
+// }
 /*-------------------------- project.2-Parsing -----------------------------*/
 
 
@@ -825,7 +885,7 @@ int process_add_file(struct file *f) {
 /*-------------------------- project.2-System Call -----------------------------*/
 struct file * process_get_file(int fd) {
     struct thread *t = thread_current();
-    if (fd < 2 || t->next_fd <= fd) return NULL;
+    // if (fd < 2 || t->next_fd <= fd) return NULL;
     if (t->fd_table[fd])
     {
         // printf("get_file_fd:%d\n", fd);

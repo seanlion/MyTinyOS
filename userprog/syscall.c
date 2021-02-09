@@ -1,27 +1,73 @@
+// #include "userprog/syscall.h"
+// #include <stdio.h>
+// #include <syscall-nr.h>
+// #include "threads/interrupt.h"
+// #include "threads/thread.h"
+// #include "threads/loader.h"
+// #include "userprog/gdt.h"
+// #include "threads/flags.h"
+// #include "intrinsic.h"
+// #include "userprog/process.h"
+// #include "devices/input.h"
+// #include "filesys/filesys.h"
+// #include "filesys/file.h"
+
+
+// #include "threads/synch.h"
+// #include <stdbool.h>
+// #include <debug.h>
+// #include <stddef.h>
+
 #include "userprog/syscall.h"
+#include "userprog/process.h"
 #include <stdio.h>
+#include <list.h>
 #include <syscall-nr.h>
+#include "filesys/filesys.h"
+#include "filesys/file.h"
+#include "filesys/inode.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/synch.h"
 #include "threads/loader.h"
+#include "threads/palloc.h"
+#include "threads/mmu.h"
 #include "userprog/gdt.h"
 #include "threads/flags.h"
+#include "vm/vm.h"
+#include "vm/file.h"
+#include "filesys/directory.h"
+#include "filesys/fat.h"
+
 #include "intrinsic.h"
 
-/*-------------------------- project.2-System call -----------------------------*/
-#include "threads/synch.h"
-#include "filesys/file.h"
-#include "filesys/filesys.h"
-#include "userprog/process.h"
 /*-------------------------- project.2-System call -----------------------------*/
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 /*-------------------------- project.2-System call -----------------------------*/
 
 
-
+/*-------------------------- project.2-System Call -----------------------------*/
+static struct lock filesys_lock;
+typedef int pid_t;
+/*-------------------------- project.2-System Call -----------------------------*/
 
 /*-------------------------- project.2-System call -----------------------------*/
+void check_address(void *);
+void get_argument(void *, uint64_t *, int);
+void halt (void);
+void exit (int );
+int open (const char *);
+bool create(const char * , unsigned);
+bool remove(const char *);
+void seek (int, unsigned);
+unsigned tell (int);
+void close (int);
+int filesize(int);
+int read (int , void*, unsigned);
+int write(int, const void *, unsigned );
+/*-------------------------- project.2-System call -----------------------------*/
+
 
 
 
@@ -86,14 +132,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = create(f->R.rdi, f->R.rsi);
 			break;
         }
-		case SYS_OPEN2: {
-
-            // printf("handler open : %s\n", f->R.rdi);
-			// get_argument(f->R.rdi, arg, 1);
-            // char * open_arg = (char *)f->R.rdi;
+		case SYS_OPEN: 
 			f->R.rax = open(f->R.rdi);
-            // printf("rtn_fd:%d\n", rtn_fd);
-        }
+
 			break;
         case SYS_REMOVE: 
             // printf("remove\n");
@@ -132,13 +173,16 @@ syscall_handler (struct intr_frame *f UNUSED) {
             break;
         }
         case SYS_SEEK:
-            // seek (f->R.rdi, f->R.rsi);
+            {
+
+            seek (f->R.rdi, f->R.rsi);
             break;
+            }
         case SYS_TELL:
-            // tell (f->R.rdi);
+            f->R.rax = tell (f->R.rdi);
             break;
         case SYS_CLOSE:
-            // close(f->R.rdi);
+            close(f->R.rdi);
             break;
 		default:
             // printf("default\n");
@@ -212,7 +256,7 @@ bool remove(const char *file) {
 
 
 /*-------------------------- project.2-System call -----------------------------*/
-int write(int fd, void *buffer, unsigned size) {
+int write(int fd, const void *buffer, unsigned size) {
     // printf("writefd=%d\n", fd);
     lock_acquire(&filesys_lock);
     struct file *f = process_get_file(fd);
@@ -298,4 +342,51 @@ int read (int fd, void*buffer, unsigned size) {
     lock_release(&filesys_lock);
     return cur_size;
 }
+
 /*-------------------------- project.2-System call -----------------------------*/
+
+/*-------------------------- project.2-System call -----------------------------*/
+void seek (int fd, unsigned position) {
+    struct file *f;
+    lock_acquire(&filesys_lock);
+    // struct file *f = process_get_file(fd);
+    if((f = process_get_file(fd))!=NULL)
+        file_seek(f, position);
+    lock_release(&filesys_lock);
+}
+/*-------------------------- project.2-System call -----------------------------*/
+
+
+/*-------------------------- project.2-System call -----------------------------*/
+unsigned tell (int fd) {
+    struct file *f;
+    lock_acquire(&filesys_lock);
+    // struct file *f = process_get_file(fd);
+    unsigned offset = 0;
+    if((f = process_get_file(fd))!=NULL)
+		offset = file_tell(f);
+    lock_release(&filesys_lock);
+    return offset;
+}
+/*-------------------------- project.2-System call -----------------------------*/
+
+
+
+/*-------------------------- project.2-System call -----------------------------*/
+void close (int fd) {
+    process_close_file(fd);
+}
+/*-------------------------- project.2-System call -----------------------------*/
+
+
+
+/*-------------------------- project.2-Process -----------------------------*/
+// pid_t exec(const char *cmd_line) {
+//     int error = process_exec(cmd_line);
+//     if (error == -1) return -1;
+//     // 호적에 넣어줬나요?
+//     return error;
+// }
+/*-------------------------- project.2-Process -----------------------------*/
+
+

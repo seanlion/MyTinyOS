@@ -1,3 +1,24 @@
+// #include "userprog/process.h"
+// #include <debug.h>
+// #include <inttypes.h>
+// #include <round.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <string.h>
+// #include "userprog/gdt.h"
+// #include "userprog/tss.h"
+// #include "filesys/directory.h"
+// #include "filesys/file.h"
+// #include "filesys/filesys.h"
+// #include "threads/flags.h"
+// #include "threads/init.h"
+// #include "threads/interrupt.h"
+// #include "threads/palloc.h"
+// #include "threads/thread.h"
+// #include "threads/mmu.h"
+// #include "threads/vaddr.h"
+// #include "intrinsic.h"
+
 #include "userprog/process.h"
 #include <debug.h>
 #include <inttypes.h>
@@ -5,19 +26,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <list.h>
 #include "userprog/gdt.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+
+#include "filesys/fat.h"
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/mmu.h"
+#include "threads/synch.h"
+#include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
+
+
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -238,7 +269,7 @@ process_exec (void *f_name) {
 
 	/* If load failed, quit. */
     /*-------------------------- project.2-Parsing -----------------------------*/
-    if(is_kernal_vaddr(file_name)){
+    if(is_kernel_vaddr(file_name)){
 	    palloc_free_page (file_name);
 
     }

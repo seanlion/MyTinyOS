@@ -22,6 +22,7 @@ struct file * process_get_file(int);
 void process_close_file(int);
 void process_exit(void);
 struct thread *get_child_process(int);
+void remove_child_process(struct thread *);
 /*-------------------------- project.2-System call -----------------------------*/
 
 

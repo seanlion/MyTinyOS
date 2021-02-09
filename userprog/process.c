@@ -209,7 +209,6 @@ process_exec (void *f_name) {
     memcpy(file_static_name, file_name, strlen(file_name)+1);
     /*-------------------------- project.2-Parsing -----------------------------*/
 	bool success;
-
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member. */
@@ -224,29 +223,16 @@ process_exec (void *f_name) {
 	// /* Initialize interrupt frame and load executable. */
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
-
 	/* We first kill the current context */
 	process_cleanup ();
 
 	/* And then load the binary */
 	// success = load (file_name, &_if);
-
     /*-------------------------- project.2-Parsing -----------------------------*/
-    // char *file_name = malloc(strlen(f_name)+1);
-    // memcpy(file_name, f_name, strlen(f_name)+1);
-    // // printf("------------------ exec load:%s\n", file_name);
-    // success = load (file_name, &_if);
-    // free(file_name);
-    // // printf("enter_palloc_free_page\n");
-    /*-------------------------- project.2-Parsing -----------------------------*/
-
-
-    /*-------------------------- project.2-Parsing -----------------------------*/
-	char *token, *ptr, *last, *name_copy;
+	char *token, *ptr, *last;
 	int token_count = 0;
 	char* arg_list[64];
-	strlcpy(name_copy, f_name, strlen(f_name)+1);
-	token = strtok_r(name_copy, " ", &last);
+	token = strtok_r(file_static_name, " ", &last);
 	char *tmp_save = token;
 	arg_list[token_count] = token;
 	while ( token != NULL)
@@ -255,28 +241,23 @@ process_exec (void *f_name) {
 		token_count ++;
 		arg_list[token_count] = token;
 	}
-
     success = load (tmp_save, &_if);
     argument_stack(arg_list, token_count , &_if);
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
-
-
-
-
-
-
-
 	/* If load failed, quit. */
     /*-------------------------- project.2-Parsing -----------------------------*/
-    if(is_kernel_vaddr(file_name)){
+    if (is_kernel_vaddr(file_name)) {
 	    palloc_free_page (file_name);
-
     }
     /*-------------------------- project.2-Parsing -----------------------------*/
-	if (!success)
-		return -1;
+	struct thread* t = thread_current();
+    if (!success) {
 
+        t->is_load = 0;
+		return -1;
+    }
+    else t->is_load = 1;
 	/* Start switched process. */
 	do_iret (&_if);
 	NOT_REACHED ();
@@ -298,15 +279,27 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 
-    /* ----------------------------------- Project2.--------------------------------*/
-    int i = 0;
-	while (i < 100000000)
-	{
-		i ++;
-	}
-    /* ----------------------------------- Project2.--------------------------------*/
+    /* ----------------------------------- Project2.Process --------------------------------*/
+    // int i = 0;
+	// while (i < 100000000)
+	// {
+	// 	i ++;
+	// }
+    struct thread * child_t = get_child_process(child_tid);
+    if (child_t == NULL) return -1;
 
-	return -1;
+    sema_down(&child_t->sema_exit);
+
+    
+    if (child_t->is_exit) {
+        int rtn_status = child_t->exit_status;
+        remove_child_process(child_t);
+        return rtn_status;
+    }
+
+    remove_child_process(child_t);
+    return -1;
+    /* ----------------------------------- Project2.Process --------------------------------*/
 }
 
 
@@ -841,9 +834,6 @@ void argument_stack(char **argv, int argc, struct intr_frame *if_)
 //         if_->rsp = if_->rsp-(argv_len+1);
 //         tmp[i] = if_->rsp;
 //         memcpy(if_->rsp, parse[i], argv_len+1);
-
-
-
 // 	}
 	
 // 	size_t alignment = (size_t) cur_rsp % 8;
@@ -856,6 +846,8 @@ void argument_stack(char **argv, int argc, struct intr_frame *if_)
 
 // 	cur_rsp = cur_rsp - sizeof(char *);
 //     *(uint64_t*) cur_rsp = 0; 
+
+
 // 	for (int k = count - 1 ; k > -1 ; k--)
 // 	{
 // 		cur_rsp = cur_rsp - sizeof(char*); 
@@ -875,35 +867,30 @@ void argument_stack(char **argv, int argc, struct intr_frame *if_)
 
 
 /*-------------------------- project.2-Process -----------------------------*/
-// struct thread *get_child_process(int pid) {
-// 	struct thread *t = thread_current();
-//     if (list_empty(&t->my_child)) return NULL;
+struct thread *get_child_process(int pid) {
+	struct thread *t = thread_current();
+    if (list_empty(&t->my_child)) return NULL;
 
-// 	struct list_elem *e = list_begin(&t->my_child);
-//     for (e ; e != list_end(&t->my_child) ; )
-//     {
-//         struct thread *cur = list_entry(e, struct thread, child_elem);
-//         if (cur->tid == pid) {
-//             return cur;
-//         }
-//         e = list_next(e);
-//     }
-//     return NULL;
-// }
+	struct list_elem *e = list_begin(&t->my_child);
+    for (e ; e != list_end(&t->my_child) ; )
+    {
+        struct thread *cur = list_entry(e, struct thread, child_elem);
+        if (cur->tid == pid) {
+            return cur;
+        }
+        e = list_next(e);
+    }
+    return NULL;
+}
 /*-------------------------- project.2-Process -----------------------------*/
 
 /*-------------------------- project.2-Process -----------------------------*/
-// void remove_child_process(struct thread *cp) {
-//     struct list_elem* remove_elem = &cp->child_elem;
-//     list_remove(remove_elem);
-//     palloc_free_page(cp);
-// }
+void remove_child_process(struct thread *cp) {
+    struct list_elem* remove_elem = &cp->child_elem;
+    list_remove(remove_elem);
+    palloc_free_page(cp);
+}
 /*-------------------------- project.2-Process -----------------------------*/
-
-
-
-
-
 
 
 
@@ -954,6 +941,8 @@ void process_close_file(int fd) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 void process_exit(void) {
     struct thread *t = thread_current();
+    t->is_exit = true;
+    sema_up(&t->sema_exit);
     for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
     {
         process_close_file(t->next_fd);

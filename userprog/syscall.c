@@ -66,6 +66,7 @@ void close (int);
 int filesize(int);
 int read (int , void*, unsigned);
 int write(int, const void *, unsigned );
+int wait(tid_t);
 /*-------------------------- project.2-System call -----------------------------*/
 
 
@@ -120,8 +121,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			halt();
 			break;
 		case SYS_EXIT:
-            // printf("hi\n");
-            // printf("exit:%d\n", f->R.rdi);
+            // printf("--------------exit:%d\n", f->R.rdi);
 			// get_argument(f->rsp, arg, 1);
 			exit(f->R.rdi);
 			break;
@@ -139,17 +139,17 @@ syscall_handler (struct intr_frame *f UNUSED) {
         case SYS_REMOVE: 
             // printf("remove\n");
             // get_argument(f->rsp, arg, 1);
-            // remove(f->R.rdi);
+            f->R.rax = remove(f->R.rdi);
             break;
         case SYS_FORK:
             // printf("fork\n");
 			break;
         case SYS_EXEC:
             // check_address(f->rsp);
-            // f->R.rax = exec(f->R.rdi);  // 왜 rax로 받는지?
+            f->R.rax = exec(f->R.rdi);
             break;
         case SYS_WAIT:
-            // printf("wait\n");
+            f->R.rax = wait(f->R.rdi);
             break;
         case SYS_FILESIZE: {
             // printf("filesize\n");
@@ -158,23 +158,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
         }
         case SYS_READ: {
-
-            // printf("read\n");
             f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
             break;
         }
         case SYS_WRITE:{
-
-            // get_argument(f->R.rsi, arg, 3);
-            // printf("syscall-write\n");
-            // printf("rdi:%d\n", f->R.rdi);
             f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
-            // printf("write\n");
             break;
         }
         case SYS_SEEK:
             {
-
             seek (f->R.rdi, f->R.rsi);
             break;
             }
@@ -229,7 +221,7 @@ void
 exit (int status) {
     // printf("hi\n");
 	struct thread *t = thread_current();
-    // printf("status:%d\n", status);
+    t->exit_status = status;
 	printf("%s: exit(%d)\n", t->name, status);
 	thread_exit();
 }
@@ -239,9 +231,10 @@ exit (int status) {
 bool
 create(const char *file , unsigned initial_size) {
 	// printf("create\n");
-    lock_acquire(&filesys_lock);
+    if (file == NULL) exit(-1);
+    // lock_acquire(&filesys_lock);
     bool result = (filesys_create (file, initial_size));
-    lock_release(&filesys_lock);
+    // lock_release(&filesys_lock);
     return result;
 }
 /*-------------------------- project.2-System call -----------------------------*/
@@ -280,18 +273,14 @@ int open (const char *file_name) {
     if (file_name == NULL) {
         return -1;
     }
-    // printf("open2 file name : %s\n", *file_name);
-	lock_acquire(&filesys_lock);
+
 	struct file *file = filesys_open(file_name);
     if (file) {
         int fd = process_add_file(file);
-        lock_release(&filesys_lock);
-        // printf("openfd=%d\n", fd);
         return fd;
     }
     else{
-        lock_release(&filesys_lock);
-        exit(-1);
+        return -1;
     }
 }
 /*-------------------------- project.2-System call -----------------------------*/
@@ -381,12 +370,20 @@ void close (int fd) {
 
 
 /*-------------------------- project.2-Process -----------------------------*/
-// pid_t exec(const char *cmd_line) {
-//     int error = process_exec(cmd_line);
-//     if (error == -1) return -1;
-//     // 호적에 넣어줬나요?
-//     return error;
-// }
+pid_t exec(const char *cmd_line) {
+    int error = process_exec(cmd_line);
+    if (error == -1) return -1;
+    return error;
+}
 /*-------------------------- project.2-Process -----------------------------*/
+
+
+/*-------------------------- project.2-Process -----------------------------*/
+int wait(tid_t tid) {
+    return process_wait(tid);
+}
+
+/*-------------------------- project.2-Process -----------------------------*/
+
 
 

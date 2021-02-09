@@ -108,19 +108,18 @@ struct thread {
 	
 
     /*-------------------------- project.2-Parsing -----------------------------*/
-    // struct thread *parent_t;
-    // struct list_elem child_elem;
-    // struct list my_child;
+    struct thread *parent_t;
+    struct list_elem child_elem;
+    struct list my_child;
 
-    // bool is_load;
-    // bool is_exit;
-    // struct semaphore sema_exit;
-    // struct semaphore sema_load;
+    bool is_load;
+    bool is_exit;
+    struct semaphore sema_exit;
+    struct semaphore sema_load;
     int exit_status;
 
     int next_fd;
     struct file* fd_table[64];
-
     /*-------------------------- project.2-Parsing -----------------------------*/
 
 

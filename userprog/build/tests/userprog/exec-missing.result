@@ -1,0 +1,15 @@
+FAIL
+Kernel panic in run: PANIC at ../../threads/thread.c:335 in thread_current(): assertion `is_thread(t)' failed.
+Call stack: 0x800421686c 0x8004207151 0x800421ba3d 0x800421b5cf 0x8004208ea5 0x80042092c3 0x800421ad55 0x800421a269 0x800421beb7 0x800421b837 0x800421b641
+Translation of call stack:
+0x000000800421686c: debug_panic (lib/kernel/debug.c:32)
+0x0000008004207151: thread_current (threads/thread.c:336)
+0x000000800421ba3d: exit (userprog/syscall.c:223)
+0x000000800421b5cf: syscall_entry (??:?)
+0x0000008004208ea5: intr_handler (threads/interrupt.c:352)
+0x00000080042092c3: intr_entry (threads/intr-stubs.o:?)
+0x000000800421ad55: argument_stack (userprog/process.c:774 (discriminator 3))
+0x000000800421a269: process_exec (userprog/process.c:250)
+0x000000800421beb7: exec (userprog/syscall.c:374)
+0x000000800421b837: syscall_handler (userprog/syscall.c:149)
+0x000000800421b641: no_sti (userprog/syscall-entry.o:?)

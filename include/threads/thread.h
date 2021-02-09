@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -95,9 +96,39 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 
+	// 깨어나야할 tick 저장 (wakeup_tick)
+	int64_t wakeup_tick;
+
+	/*-------------------------- project.1-Priority Donation -----------------------------*/
+	int init_priority;
+	struct lock *wait_on_lock;
+	struct list donations;
+	struct list_elem donation_elem;
+	/*-------------------------- project.1-Priority Donation -----------------------------*/
+	
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
+    /*-------------------------- project.2-Parsing -----------------------------*/
+    // struct thread *parent_t;
+    // struct list_elem child_elem;
+    // struct list my_child;
+
+    // bool is_load;
+    // bool is_exit;
+    // struct semaphore sema_exit;
+    // struct semaphore sema_load;
+    int exit_status;
+
+    int next_fd;
+    struct file* fd_table[64];
+
+    /*-------------------------- project.2-Parsing -----------------------------*/
+
+
+
+
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
@@ -107,6 +138,8 @@ struct thread {
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
+
+
 };
 
 /* If false (default), use round-robin scheduler.
@@ -142,5 +175,26 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
+
+/*-------------------------- project.1-Alarm_Clock -----------------------------*/
+ void thread_sleep(int64_t);
+ void thread_awake(int64_t);
+ void update_next_tick_to_awake(int64_t);
+ int64_t get_next_tick_to_awake(void);
+/*-------------------------- project.1-Alarm_Clock -----------------------------*/
+
+/*-------------------------- project.1-Priority Scheduling -----------------------------*/
+// 현재 수행중인 스레드와 가장 높은 우선순위의 스레드의 우선순위를 비교하여 스케줄링
+void test_max_priority(void);
+
+// 인자로 주어진 스레드들의 우선순위를 비교
+bool cmp_priority (const struct list_elem *, const struct list_elem *, void *);
+/*-------------------------- project.1-Priority Scheduling -----------------------------*/
+
+/*-------------------------- project.1-Priority Donation -----------------------------*/
+void donate_priority (void);
+void remove_with_lock (struct lock *);
+void refresh_priority (void);
+/*-------------------------- project.1-Priority Donation -----------------------------*/
 
 #endif /* threads/thread.h */

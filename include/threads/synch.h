@@ -37,6 +37,10 @@ void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
+/*-------------------------- project.1-Priority Sync -----------------------------*/
+bool cmp_sem_priority (const struct list_elem *, const struct list_elem *, void *);
+/*-------------------------- project.1-Priority Sync -----------------------------*/
+
 
 /* Optimization barrier.
  *

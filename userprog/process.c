@@ -50,6 +50,14 @@ process_create_initd (const char *file_name) {
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
 
+	/*-------------------------- project.2-Parsing -----------------------------*/
+	// 스레드  이름  파싱
+	char del[] = " ";
+	char *save_ptr = NULL;
+	char *program_name = strtok_r(file_name, del, &save_ptr);
+	/*-------------------------- project.2-Parsing -----------------------------*/
+
+
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
 	if (tid == TID_ERROR)
@@ -162,7 +170,10 @@ error:
  * Returns -1 on fail. */
 int
 process_exec (void *f_name) {
-	char *file_name = f_name;
+    /*-------------------------- project.2-Parsing -----------------------------*/
+	// char *file_name = f_name;
+    char *file_name = palloc_get_page(PAL_ZERO);
+    /*-------------------------- project.2-Parsing -----------------------------*/
 	bool success;
 
 	/* We cannot use the intr_frame in the thread structure.
@@ -177,10 +188,48 @@ process_exec (void *f_name) {
 	process_cleanup ();
 
 	/* And then load the binary */
-	success = load (file_name, &_if);
+	// success = load (file_name, &_if);
+
+    /*-------------------------- project.2-Parsing -----------------------------*/
+    // char *file_name = malloc(strlen(f_name)+1);
+    // memcpy(file_name, f_name, strlen(f_name)+1);
+    // // printf("------------------ exec load:%s\n", file_name);
+    // success = load (file_name, &_if);
+    // free(file_name);
+    // // printf("enter_palloc_free_page\n");
+    /*-------------------------- project.2-Parsing -----------------------------*/
+
+
+    /*-------------------------- project.2-Parsing -----------------------------*/
+	char *token, *ptr, *last, *name_copy;
+	int token_count = 0;
+	char* arg_list[65];
+	strlcpy(name_copy, f_name, strlen(f_name)+1);
+	token = strtok_r(name_copy, " ", &last);
+	char *tmp_save = token;
+	arg_list[token_count] = token;
+	while ( token != NULL)
+	{
+		token = strtok_r(NULL, " ", &last);
+		token_count ++;
+		arg_list[token_count] = token;
+	}
+
+    success = load (tmp_save, &_if);
+    argument_stack(&arg_list, token_count , &_if);
+	/*-------------------------- project.2-Parsing -----------------------------*/
+
+
+
+
+
+
+
 
 	/* If load failed, quit. */
+    /*-------------------------- project.2-Parsing -----------------------------*/
 	palloc_free_page (file_name);
+    /*-------------------------- project.2-Parsing -----------------------------*/
 	if (!success)
 		return -1;
 
@@ -204,20 +253,18 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+
+    /* ----------------------------------- Project2.--------------------------------*/
+    int i = 0;
+	while (i < 100000000)
+	{
+		i ++;
+	}
+    /* ----------------------------------- Project2.--------------------------------*/
+
 	return -1;
 }
 
-/* Exit the process. This function is called by thread_exit (). */
-void
-process_exit (void) {
-	struct thread *curr = thread_current ();
-	/* TODO: Your code goes here.
-	 * TODO: Implement process termination message (see
-	 * TODO: project2/process_termination.html).
-	 * TODO: We recommend you to implement process resource cleanup here. */
-
-	process_cleanup ();
-}
 
 /* Free the current process's resources. */
 static void
@@ -329,6 +376,29 @@ load (const char *file_name, struct intr_frame *if_) {
 	bool success = false;
 	int i;
 
+
+    /*-------------------------- project.2-Parsing -----------------------------*/
+    // char *token, *ptr, *last, *name_copy;
+	// int token_count = 0;
+	// char* arg_list[65];
+    // printf("------------------ namecopy : %p\n", name_copy);
+	// strlcpy(name_copy, file_name, (strlen(file_name)+1));
+    // // printf("------------------ strlcopt : %s\n", name_copy);
+	// token = strtok_r(name_copy, " ", &last);
+    // // printf("------------------ 1\n", name_copy);
+	// char *tmp_save = token;
+	// arg_list[token_count] = token;
+    // // printf("------------------ 2\n", name_copy);
+	// while ( token != NULL)
+	// {
+	// 	token = strtok_r(NULL, " ", &last);
+	// 	token_count ++;
+	// 	arg_list[token_count] = token;
+	// }
+    /*-------------------------- project.2-Parsing -----------------------------*/
+
+
+
 	/* Allocate and activate page directory. */
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
@@ -339,8 +409,12 @@ load (const char *file_name, struct intr_frame *if_) {
 	file = filesys_open (file_name);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
+        /*-------------------------- project.2-Parsing -----------------------------*/
+        // printf ("load: %s: open failed\n", tmp_save);
+        /*-------------------------- project.2-Parsing -----------------------------*/
 		goto done;
 	}
+
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -351,8 +425,12 @@ load (const char *file_name, struct intr_frame *if_) {
 			|| ehdr.e_phentsize != sizeof (struct Phdr)
 			|| ehdr.e_phnum > 1024) {
 		printf ("load: %s: error loading executable\n", file_name);
+        /*-------------------------- project.2-Parsing -----------------------------*/
+        // printf ("load: %s: error loading executable\n", tmp_save);
+        /*-------------------------- project.2-Parsing -----------------------------*/
 		goto done;
 	}
+
 
 	/* Read program headers. */
 	file_ofs = ehdr.e_phoff;
@@ -415,7 +493,17 @@ load (const char *file_name, struct intr_frame *if_) {
 	if_->rip = ehdr.e_entry;
 
 	/* TODO: Your code goes here.
-	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+
+
+    /*-------------------------- project.2-Parsing -----------------------------*/
+    // passing
+    // printf("------------------ 3\n", name_copy);
+    // argument_stack(&arg_list, token_count , if_);
+	// hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
+	/*-------------------------- project.2-Parsing -----------------------------*/
+
+
+	/* TODO: Implement argument passing (see project2/argument_passing.html). */
 
 	success = true;
 
@@ -637,3 +725,139 @@ setup_stack (struct intr_frame *if_) {
 	return success;
 }
 #endif /* VM */
+
+
+
+
+/*-------------------------- project.2-Parsing -----------------------------*/
+void argument_stack(char **parse ,int count ,struct intr_frame *if_)
+{
+	void* cur_rsp = if_->rsp;
+	char* tmp[65] ;
+	for (int i = count -1 ; i > -1; i--)
+	{
+		for (int j = strlen(parse[i]); j > -1 ; j--)
+		{
+			cur_rsp = cur_rsp - sizeof(char);
+			*(char *)cur_rsp = parse[i][j];
+		}
+		tmp[i] = cur_rsp;
+
+	}
+	
+	size_t alignment = (size_t) cur_rsp % 8;
+
+	
+	if (alignment)
+	{
+		cur_rsp = cur_rsp - alignment;
+	}
+
+	cur_rsp = cur_rsp - sizeof(char *);
+    *(uint64_t*) cur_rsp = 0; 
+	for (int k = count - 1 ; k > -1 ; k--)
+	{
+		cur_rsp = cur_rsp - sizeof(char*); 
+		*(uint64_t*)cur_rsp = tmp[k];
+        // printf("arg[%d] : %s\n", **(char*)cur_rsp
+	}
+	if_->R.rsi = cur_rsp;
+	cur_rsp = cur_rsp - sizeof(void *);
+    // printf("cur_rsp:%p, %s\n", cur_rsp, (char*) cur_rsp);
+	if_->R.rdi = count;
+	if_->rsp = cur_rsp;
+    *(uint64_t *)cur_rsp = 0;
+    // printf("if_->Rsp:%p, %s\n", if_->rsp, (char*) if_->rsp);
+}
+/*-------------------------- project.2-Parsing -----------------------------*/
+
+
+
+/*-------------------------- project.2-Process -----------------------------*/
+// struct thread *get_child_process(int pid) {
+// 	struct thread *t = thread_current();
+//     if (list_empty(&t->my_child)) return NULL;
+
+// 	struct list_elem *e = list_begin(&t->my_child);
+//     for (e ; e != list_end(&t->my_child) ; )
+//     {
+//         struct thread *cur = list_entry(e, struct thread, child_elem);
+//         if (cur->tid == pid) {
+//             return cur;
+//         }
+//         e = list_next(e);
+//     }
+//     return NULL;
+// }
+/*-------------------------- project.2-Process -----------------------------*/
+
+/*-------------------------- project.2-Process -----------------------------*/
+// void remove_child_process(struct thread *cp) {
+//     struct list_elem* remove_elem = &cp->child_elem;
+//     list_remove(remove_elem);
+//     palloc_free_page(cp);
+// }
+/*-------------------------- project.2-Process -----------------------------*/
+
+
+
+
+
+
+
+
+/*-------------------------- project.2-System Call -----------------------------*/
+int process_add_file(struct file *f) {
+    struct thread *t = thread_current();
+    int rtn_fd = t->next_fd;
+    // printf("add_file_fd:%d\n", rtn_fd);
+    t->fd_table[rtn_fd] = f;
+    t->next_fd += 1;
+    return rtn_fd;
+}
+/*-------------------------- project.2-System Call -----------------------------*/
+
+
+/*-------------------------- project.2-System Call -----------------------------*/
+struct file * process_get_file(int fd) {
+    struct thread *t = thread_current();
+    if (fd < 2 || t->next_fd <= fd) return NULL;
+    if (t->fd_table[fd])
+    {
+        // printf("get_file_fd:%d\n", fd);
+        return t->fd_table[fd];
+    }
+    else
+    {
+        return NULL;
+    }
+}
+/*-------------------------- project.2-System Call -----------------------------*/
+
+
+/*-------------------------- project.2-System Call -----------------------------*/
+void process_close_file(int fd) {
+    struct thread *t = thread_current();
+    if (fd < 2 || t->next_fd <= fd) return;
+    file_close(t->fd_table[fd]);
+    t->fd_table[fd] = NULL;
+}
+/*-------------------------- project.2-System Call -----------------------------*/
+
+
+/*-------------------------- project.2-System Call -----------------------------*/
+/* Exit the process. This function is called by thread_exit (). */
+	/* TODO: Your code goes here.
+	 * TODO: Implement process termination message (see
+	 * TODO: project2/process_termination.html).
+	 * TODO: We recommend you to implement process resource cleanup here. */
+void process_exit(void) {
+    struct thread *t = thread_current();
+    for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
+    {
+        process_close_file(t->next_fd);
+    }
+    // palloc_free_multiple(t->fd_table, 2);
+    process_cleanup();
+}
+/*-------------------------- project.2-System Call -----------------------------*/

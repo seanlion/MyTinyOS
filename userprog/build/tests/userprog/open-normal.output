@@ -1,0 +1,65 @@
+Kernel command line: -q -f put open-normal put sample.txt run open-normal
+0 ~ 9fc00 1
+100000 ~ 13e0000 1
+Pintos booting with: 
+	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
+	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
+Calibrating timer...  104,755,200 loops/s.
+hd0:0: detected 297 sector (148 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+hd0:1: detected 20,160 sector (9 MB) disk, model "QEMU HARDDISK", serial "QM00002"
+hd1:0: detected 105 sector (52 kB) disk, model "QEMU HARDDISK", serial "QM00003"
+Formatting file system...done.
+Boot complete.
+Putting 'open-normal' into the file system...
+Putting 'sample.txt' into the file system...
+Executing 'open-normal':
+(open-normal) begin
+(open-normal) end
+open-normal: exit(0)
+Execution of 'open-normal' complete.
+Timer: 65 ticks
+Thread: 30 idle ticks, 32 kernel ticks, 3 user ticks
+hd0:0: 0 reads, 0 writes
+hd0:1: 111 reads, 248 writes
+hd1:0: 105 reads, 0 writes
+Console: 917 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+PowerInterrupt 0x0d (#GP General Protection Exception) at rip=8004216d8b
+ cr2=0000000000000000 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000008004000020 rdx 0000008004000020
+rsp 0000008004000db0 rbp 0000008004000dc0 rsi 0000008004000020 rdi 000000800423d020
+rip 0000008004216d8b r8 0000008004000ec8  r9 0000008004219c50 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200002
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Kernel PANIC at ../../userprog/exception.c:97 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0x80042167d7 0x800421b5b1 0x8004208e10 0x800420922e 0x8004217ba4 0x80042072e4 0x8004208f67 0x800420922e 0x8004207f83 0x800421154a 0x8004219d1c 0x8004219b87 0x800420693c 0x8004206197.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
+Kernel PANIC recursion at ../../filesys/inode.c:304 in inode_allow_write().
+Interrupt 0x0d (#GP General Protection Exception) at rip=8004216d8b
+ cr2=0000000000000000 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000000000000010 rdx 0000008004239028
+rsp 0000008004000a20 rbp 0000008004000a30 rsi 0000008004239028 rdi 0000008004239028
+rip 0000008004216d8b r8 0000008004000a7c  r9 0000008004219c50 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200006
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Interrupt 0x0d (#GP General Protection Exception) at rip=800421e644
+ cr2=0000000000000000 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000008004223500 rdx 000000000000002f
+rsp 00000080040007f0 rbp 0000008004000800 rsi 000000000000000a rdi cccccccccccccccc
+rip 000000800421e644 r8 00000080042166fc  r9 0000008004219c50 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200006
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Interrupt 0x0d (#GP General Protection Exception) at rip=800421e12a
+ cr2=0000000000000000 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000008004223500 rdx 0000000000000038
+rsp 00000080040005e0 rbp 00000080040005f0 rsi 000000000000000a rdi cccccccccccccccc
+rip 000000800421e12a r8 00000080042166fc  r9 0000008004219c50 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200086
+es: 0010 ds: 0010 cs: 0008 ss: 0010

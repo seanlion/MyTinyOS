@@ -1,0 +1,63 @@
+Kernel command line: -q -f put bad-read2 run bad-read2
+0 ~ 9fc00 1
+100000 ~ 13e0000 1
+Pintos booting with: 
+	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
+	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
+Calibrating timer...  117,760,000 loops/s.
+hd0:0: detected 297 sector (148 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+hd0:1: detected 20,160 sector (9 MB) disk, model "QEMU HARDDISK", serial "QM00002"
+hd1:0: detected 103 sector (51 kB) disk, model "QEMU HARDDISK", serial "QM00003"
+Formatting file system...done.
+Boot complete.
+Putting 'bad-read2' into the file system...
+Executing 'bad-read2':
+(bad-read2) begin
+bad-read2: exit(-1)
+Execution of 'bad-read2' complete.
+Timer: 72 ticks
+Thread: 30 idle ticks, 39 kernel ticks, 3 user ticks
+hd0:0: 0 reads, 0 writes
+hd0:1: 80 reads, 234 writes
+hd1:0: 103 reads, 0 writes
+Console: 825 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Interrupt 0x0d (#GP General Protection Exception) at rip=8004216d8b
+ cr2=0000008004000000 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000008004000020 rdx 0000008004000020
+rsp 0000008004000c70 rbp 0000008004000c80 rsi 0000008004000020 rdi 000000800423d020
+rip 0000008004216d8b r8 0000008004000ec8  r9 0000008004219c50 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200002
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Kernel PANIC at ../../userprog/exception.c:97 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0x80042167d7 0x800421b5b1 0x8004208e10 0x800420922e 0x8004217ba4 0x80042072e4 0x8004208f67 0x800420922e 0x8004207f83 0x8004210fc6 0x8004219d2e 0x8004219c8d 0x8004213d23 0x8004219b3c 0x8004213cda 0x800421b4bd 0x80042069a0 0x8004206926 0x8004206197.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
+Kernel PANIC recursion at ../../filesys/inode.c:304 in inode_allow_write().
+Interrupt 0x0d (#GP General Protection Exception) at rip=8004216d8b
+ cr2=0000008004000000 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000000000000010 rdx 0000008004239028
+rsp 00000080040008e0 rbp 00000080040008f0 rsi 0000008004239028 rdi 0000008004239028
+rip 0000008004216d8b r8 000000800400093c  r9 0000008004219c50 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200006
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Interrupt 0x0d (#GP General Protection Exception) at rip=800421e644
+ cr2=0000008004000000 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000008004223500 rdx 0000000000000022
+rsp 00000080040006b0 rbp 00000080040006c0 rsi 000000000000000a rdi cccccccccccccccc
+rip 000000800421e644 r8 00000080042166fc  r9 0000008004219c50 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200002
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Interrupt 0x0d (#GP General Protection Exception) at rip=800421e12a
+ cr2=0000008004000000 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000008004223500 rdx 000000000000002b
+rsp 00000080040004a0 rbp 00000080040004b0 rsi 000000000000000a rdi cccccccccccccccc
+rip 000000800421e12a r8 00000080042166fc  r9 0000008004219c50 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200086
+es: 0010 ds: 0010 cs: 0008 ss: 0010

@@ -238,12 +238,12 @@ tid_t thread_create(const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
     /*-------------------------- project.2-Process -----------------------------*/
-    // struct thread *par_t = thread_current();
-    // t->is_load = false;
-    // t->is_exit = false;
-    // sema_init(&t->sema_load, 0);
-    // sema_init(&t->sema_exit, 0);
-    // list_push_back(&par_t->my_child, &t->child_elem);
+    struct thread *par_t = thread_current();
+    t->is_load = false;
+    t->is_exit = false;
+    sema_init(&t->sema_child_load, 0);
+    sema_init(&t->sema_exit, 0);
+    list_push_back(&par_t->my_child, &t->child_elem);
     t->exit_status = 0;
     /*-------------------------- project.2-Process -----------------------------*/
 
@@ -347,6 +347,10 @@ void thread_exit(void)
 	ASSERT(!intr_context());
 
 #ifdef USERPROG
+
+
+
+
 	process_exit();
 #endif
 
@@ -505,7 +509,7 @@ init_thread(struct thread *t, const char *name, int priority)
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 
     /*-------------------------- project.2-Process -----------------------------*/
-    // list_init(&t->my_child);
+    list_init(&t->my_child);
     /*-------------------------- project.2-Process -----------------------------*/
 }
 
@@ -634,12 +638,14 @@ do_schedule(int status)
 	// printf("\njoin : do_schedule\n");
 	ASSERT(intr_get_level() == INTR_OFF);
 	ASSERT(thread_current()->status == THREAD_RUNNING);
-	while (!list_empty(&destruction_req))
-	{
-		struct thread *victim =
-			list_entry(list_pop_front(&destruction_req), struct thread, elem);
-		palloc_free_page(victim);
-	}
+    /*-------------------------- project.2-Process -----------------------------*/
+	// while (!list_empty(&destruction_req))
+	// {
+	// 	struct thread *victim =
+	// 		list_entry(list_pop_front(&destruction_req), struct thread, elem);
+	// 	palloc_free_page(victim);
+	// }
+    /*-------------------------- project.2-Process -----------------------------*/
 	thread_current()->status = status;
 	schedule();
 }

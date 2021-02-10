@@ -139,7 +139,9 @@ page_fault (struct intr_frame *f) {
 	not_present = (f->error_code & PF_P) == 0;
 	write = (f->error_code & PF_W) != 0;
 	user = (f->error_code & PF_U) != 0;
+
     exit(-1); // for project 2
+
 #ifdef VM
 	/* For project 3 and later. */
 	if (vm_try_handle_fault (f, fault_addr, user, write, not_present))
@@ -148,6 +150,29 @@ page_fault (struct intr_frame *f) {
 
 	/* Count page faults. */
 	page_fault_cnt++;
+
+
+    /*-------------------------- project.2-System Call -----------------------------*/
+    // if (user == 0 || !(is_user_vaddr(fault_addr))) {
+    //     exit(-1);
+    // }
+    // if (write == 1) {
+    //     exit(-1);
+    // }
+    // if (not_present == 1) {
+    //     exit(-1);
+    // }
+    // if (fault_addr == NULL) {
+    //     exit(-1);
+    // }
+    // if (fault_addr == 0) {
+    //     exit(-1);
+    // }
+    /*-------------------------- project.2-System Call -----------------------------*/
+
+
+
+
 
 	/* If the fault is true fault, show info and exit. */
 	printf ("Page fault at %p: %s error %s page in %s context.\n",

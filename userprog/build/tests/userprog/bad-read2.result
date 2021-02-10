@@ -1,0 +1,23 @@
+FAIL
+Kernel panic in run: PANIC at ../../userprog/exception.c:97 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0x80042167d7 0x800421b5b1 0x8004208e10 0x800420922e 0x8004217ba4 0x80042072e4 0x8004208f67 0x800420922e 0x8004207f83 0x8004210fc6 0x8004219d2e 0x8004219c8d 0x8004213d23 0x8004219b3c 0x8004213cda 0x800421b4bd 0x80042069a0 0x8004206926 0x8004206197
+Translation of call stack:
+0x00000080042167d7: debug_panic (lib/kernel/debug.c:32)
+0x000000800421b5b1: kill (userprog/exception.c:103)
+0x0000008004208e10: intr_handler (threads/interrupt.c:352)
+0x000000800420922e: intr_entry (threads/intr-stubs.o:?)
+0x0000008004217ba4: list_insert_ordered (lib/kernel/list.c:431)
+0x00000080042072e4: thread_yield (threads/thread.c:381)
+0x0000008004208f67: intr_handler (threads/interrupt.c:375)
+0x000000800420922e: intr_entry (threads/intr-stubs.o:?)
+0x0000008004207f83: intr_set_level (threads/interrupt.c:131 (discriminator 1))
+0x0000008004210fc6: vga_putc (devices/vga.c:92)
+0x0000008004219d2e: putchar_have_lock (lib/kernel/console.c:177)
+0x0000008004219c8d: vprintf_helper (lib/kernel/console.c:166)
+0x0000008004213d23: __vprintf (lib/stdio.c:154)
+0x0000008004219b3c: vprintf (lib/kernel/console.c:123)
+0x0000008004213cda: printf (lib/stdio.c:80)
+0x000000800421b4bd: exception_print_stats (userprog/exception.c:67)
+0x00000080042069a0: print_stats (threads/init.c:365)
+0x0000008004206926: power_off (threads/init.c:347)
+0x0000008004206197: main (threads/init.c:127)

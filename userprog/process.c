@@ -1,3 +1,24 @@
+// #include "userprog/process.h"
+// #include <debug.h>
+// #include <inttypes.h>
+// #include <round.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <string.h>
+// #include "userprog/gdt.h"
+// #include "userprog/tss.h"
+// #include "filesys/directory.h"
+// #include "filesys/file.h"
+// #include "filesys/filesys.h"
+// #include "threads/flags.h"
+// #include "threads/init.h"
+// #include "threads/interrupt.h"
+// #include "threads/palloc.h"
+// #include "threads/thread.h"
+// #include "threads/mmu.h"
+// #include "threads/vaddr.h"
+// #include "intrinsic.h"
+
 #include "userprog/process.h"
 #include <debug.h>
 #include <inttypes.h>
@@ -5,22 +26,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <list.h>
+#include <stdbool.h>
 #include "userprog/gdt.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+
+#include "filesys/fat.h"
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/mmu.h"
+#include "threads/synch.h"
+#include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
-#include <debug.h>
-#include <stddef.h>
-#include <stdbool.h>
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -146,13 +171,23 @@ initd (void *f_name) {
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
-	return thread_create (name,
-			PRI_DEFAULT, __do_fork, thread_current ());
+	// return thread_create (name,
+	// 		PRI_DEFAULT, __do_fork, thread_current ());
+    /*-------------------------- project.2-Process  -----------------------------*/
+    struct thread* cur_t = thread_current();
+    int child_pid = thread_create (name, cur_t->priority, __do_fork, cur_t);
+	if (child_pid)
+	    sema_down(&cur_t->sema_child_load);
+
+    // 자식이면 return 0, 부모이면 return child_pid
+    return child_pid;
+    /*-------------------------- project.2-Process  -----------------------------*/
 }
 
 #ifndef VM
 /* Duplicate the parent's address space by passing this function to the
  * pml4_for_each. This is only for the project 2. */
+// aux = &parrent thread
 static bool
 duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	struct thread *current = thread_current ();
@@ -160,23 +195,34 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	void *parent_page;
 	void *newpage;
 	bool writable;
-
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
-
+    /*-------------------------- project.2-Process  -----------------------------*/
+    if (is_kernel_vaddr(va)) return true;
+    /*-------------------------- project.2-Process  -----------------------------*/
 	/* 2. Resolve VA from the parent's page map level 4. */
+    // 부모의 pml4를 자식의 pml4로 복사 하기위해서, 부모pml4의 va를 가져온다.
 	parent_page = pml4_get_page (parent->pml4, va);
+
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
+    /*-------------------------- project.2-Process  -----------------------------*/
+    newpage = palloc_get_page(PAL_USER);
+    /*-------------------------- project.2-Process  -----------------------------*/
 
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
+    /*-------------------------- project.2-Process  -----------------------------*/
+    memcpy(newpage, parent_page, PGSIZE);
+    writable = is_writable(pte);
+    /*-------------------------- project.2-Process  -----------------------------*/
 
 	/* 5. Add new page to child's page table at address VA with WRITABLE
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
 		/* 6. TODO: if fail to insert page, do error handling. */
+        return false;
 	}
 	return true;
 }
@@ -192,9 +238,10 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-	struct intr_frame *parent_if;
+    /*-------------------------- project.2-Process  -----------------------------*/
+    struct intr_frame *parent_if = &parent->fork_tf;
+    /*-------------------------- project.2-Process  -----------------------------*/
 	bool succ = true;
-
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
 
@@ -202,7 +249,7 @@ __do_fork (void *aux) {
 	current->pml4 = pml4_create();
 	if (current->pml4 == NULL)
 		goto error;
-
+    // activate는 virtual address와 physical address를 연결시킨다.
 	process_activate (current);
 #ifdef VM
 	supplemental_page_table_init (&current->spt);
@@ -218,13 +265,25 @@ __do_fork (void *aux) {
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
+    /*-------------------------- project.2-Process  -----------------------------*/
+    for (int i = 2 ; i < parent->next_fd ; i++) {
+        current->fd_table[i] = file_duplicate(parent->fd_table[i]);
+    }
+    current->next_fd = parent->next_fd;
+    sema_up(&parent->sema_child_load);
+    /*-------------------------- project.2-Process  -----------------------------*/
 
 	process_init ();
-
 	/* Finally, switch to the newly created process. */
 	if (succ)
+        /*-------------------------- project.2-Process  -----------------------------*/
+        if_.R.rax = 0;
+        /*-------------------------- project.2-Process  -----------------------------*/
 		do_iret (&if_);
 error:
+    /*-------------------------- project.2-Process  -----------------------------*/
+    sema_up(&parent->sema_child_load);
+    /*-------------------------- project.2-Process  -----------------------------*/
 	thread_exit ();
 }
 
@@ -240,7 +299,6 @@ process_exec (void *f_name) {
     memcpy(file_static_name, file_name, strlen(file_name)+1);
     /*-------------------------- project.2-Parsing -----------------------------*/
 	bool success;
-
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member. */
@@ -255,28 +313,15 @@ process_exec (void *f_name) {
 	// /* Initialize interrupt frame and load executable. */
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
-
 	/* We first kill the current context */
 	process_cleanup ();
 
 	/* And then load the binary */
 	// success = load (file_name, &_if);
-
-    /*-------------------------- project.2-Parsing -----------------------------*/
-    // char *file_name = malloc(strlen(f_name)+1);
-    // memcpy(file_name, f_name, strlen(f_name)+1);
-    // // printf("------------------ exec load:%s\n", file_name);
-    // success = load (file_name, &_if);
-    // free(file_name);
-    // // printf("enter_palloc_free_page\n");
-    /*-------------------------- project.2-Parsing -----------------------------*/
-
-
     /*-------------------------- project.2-Parsing -----------------------------*/
 	char *token, *ptr, *last;
 	int token_count = 0;
 	char* arg_list[64];
-	strlcpy(file_static_name, f_name, strlen(f_name)+1);
 	token = strtok_r(file_static_name, " ", &last);
 	char *tmp_save = token;
 	arg_list[token_count] = token;
@@ -286,26 +331,24 @@ process_exec (void *f_name) {
 		token_count ++;
 		arg_list[token_count] = token;
 	}
-
     success = load (tmp_save, &_if);
     argument_stack(arg_list, token_count , &_if);
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
-
-
-
-
-
-
-
 	/* If load failed, quit. */
     /*-------------------------- project.2-Parsing -----------------------------*/
-    if(is_kernel_vaddr(file_name))
-	    palloc_free_page (file_name);
-    /*-------------------------- project.2-Parsing -----------------------------*/
-	if (!success)
-		return -1;
 
+    if (is_kernel_vaddr(file_name)) {
+	    palloc_free_page (file_name);
+    }
+    /*-------------------------- project.2-Parsing -----------------------------*/
+	struct thread* t = thread_current();
+    if (!success) {
+
+        t->is_load = 0;
+		return -1;
+    }
+    else t->is_load = 1;
 	/* Start switched process. */
 	do_iret (&_if);
 	NOT_REACHED ();
@@ -327,15 +370,19 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 
-    /* ----------------------------------- Project2.--------------------------------*/
-    int i = 0;
-	while (i < 100000000)
-	{
-		i ++;
-	}
-    /* ----------------------------------- Project2.--------------------------------*/
+    /* ----------------------------------- Project2.Process --------------------------------*/
+    struct thread *child_t = get_child_process(child_tid);
+    if (child_t == NULL) return -1;
 
-	return -1;
+   	sema_down(&child_t->sema_exit);
+    if (child_t->is_exit) {
+        int rtn_status = child_t->exit_status;
+        remove_child_process(child_t);
+        return rtn_status;
+    }
+    remove_child_process(child_t);
+    return -1;
+    /* ----------------------------------- Project2.Process --------------------------------*/
 }
 
 
@@ -399,8 +446,14 @@ load (const char *file_name, struct intr_frame *if_) {
 	process_activate (thread_current ());
 
 	/* Open executable file. */
+	// 	프로그램의 파일을 open 할 때 file_deny_write() 함수를 호출
+	// 실행중인 파일 구조체를 thread 구조체에 추가
+	lock_acquire(&filesys_lock);
+	/*-------------------------- project.2-Denying write -----------------------------*/
 	file = filesys_open (file_name);
 	if (file == NULL) {
+		lock_release(&filesys_lock);
+		/*-------------------------- project.2-Denying write -----------------------------*/
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
@@ -756,35 +809,30 @@ void argument_stack(char **argv, int argc, struct intr_frame *if_)
 
 
 /*-------------------------- project.2-Process -----------------------------*/
-// struct thread *get_child_process(int pid) {
-// 	struct thread *t = thread_current();
-//     if (list_empty(&t->my_child)) return NULL;
+struct thread *get_child_process(int pid) {
+	struct thread *t = thread_current();
+    if (list_empty(&t->my_child)) return NULL;
 
-// 	struct list_elem *e = list_begin(&t->my_child);
-//     for (e ; e != list_end(&t->my_child) ; )
-//     {
-//         struct thread *cur = list_entry(e, struct thread, child_elem);
-//         if (cur->tid == pid) {
-//             return cur;
-//         }
-//         e = list_next(e);
-//     }
-//     return NULL;
-// }
+	struct list_elem *e = list_begin(&t->my_child);
+    for (e ; e != list_end(&t->my_child) ; )
+    {
+        struct thread *cur = list_entry(e, struct thread, child_elem);
+        if (cur->tid == pid) {
+            return cur;
+        }
+        e = list_next(e);
+    }
+    return NULL;
+}
 /*-------------------------- project.2-Process -----------------------------*/
 
 /*-------------------------- project.2-Process -----------------------------*/
-// void remove_child_process(struct thread *cp) {
-//     struct list_elem* remove_elem = &cp->child_elem;
-//     list_remove(remove_elem);
-//     palloc_free_page(cp);
-// }
+void remove_child_process(struct thread *cp) {
+    struct list_elem* remove_elem = &cp->child_elem;
+    list_remove(remove_elem);
+    palloc_free_page(cp);
+}
 /*-------------------------- project.2-Process -----------------------------*/
-
-
-
-
-
 
 
 
@@ -831,11 +879,14 @@ void process_close_file(int fd) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
-void process_exit (void) {
-    struct thread *t = thread_current ();
-    for (int fd = t->next_fd-1; fd >= 2 ; t->next_fd --)
+
+void process_exit(void) {
+    struct thread *t = thread_current();
+    t->is_exit = true;
+    sema_up(&t->sema_exit);
+    for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
     {
-        process_close_file(fd);
+        process_close_file(t->next_fd);
     }
     // palloc_free_multiple(t->fd_table, 2);
     process_cleanup();

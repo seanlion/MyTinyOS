@@ -1,40 +1,57 @@
-// #include "userprog/syscall.h"
-// #include <stdio.h>
-// #include <syscall-nr.h>
-// #include "threads/interrupt.h"
-// #include "threads/thread.h"
-// #include "threads/loader.h"
-// #include "userprog/gdt.h"
-// #include "threads/flags.h"
-// #include "intrinsic.h"
-
-/*-------------------------- project.2-System call -----------------------------*/
 #include "userprog/syscall.h"
+#include "userprog/process.h"
 #include <stdio.h>
+#include <list.h>
 #include <syscall-nr.h>
+#include "filesys/filesys.h"
+#include "filesys/file.h"
+#include "filesys/inode.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/synch.h"
 #include "threads/loader.h"
+#include "threads/palloc.h"
+#include "threads/mmu.h"
 #include "userprog/gdt.h"
 #include "threads/flags.h"
+#include "vm/vm.h"
+#include "vm/file.h"
+#include "filesys/directory.h"
+#include "filesys/fat.h"
+
 #include "intrinsic.h"
 #include "userprog/process.h"
 #include "devices/input.h"
 #include "filesys/filesys.h"
 #include "filesys/file.h"
-// #include "filesys/filesys.h"
-// #include "filesys/file.h"
 #include "lib/kernel/console.h"
-// #include "userprog/process.h"
-
-#include "threads/synch.h"
 /*-------------------------- project.2-System call -----------------------------*/
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 /*-------------------------- project.2-System call -----------------------------*/
 
-void check_address(void *addr);
+/*-------------------------- project.2-System Call -----------------------------*/
+static struct lock filesys_lock;
+typedef int pid_t;
+/*-------------------------- project.2-System Call -----------------------------*/
 
+/*-------------------------- project.2-System call -----------------------------*/
+void check_address(void *);
+void get_argument(void *, uint64_t *, int);
+void halt (void);
+void exit (int );
+int open (const char *);
+bool create(const char * , unsigned);
+bool remove(const char *);
+void seek (int, unsigned);
+unsigned tell (int);
+void close (int);
+int filesize(int);
+int read (int , void*, unsigned);
+int write(int, const void *, unsigned );
+int wait(tid_t);
+pid_t fork (const char *);
+/*-------------------------- project.2-System call -----------------------------*/
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -65,79 +82,76 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
-	// TODO: Your implementation goes here.
-	// printf ("system call!\n");
-    // printf("f->Rsp:%p\n", f->rsp);
-    // hex_dump(f->rsp, f->rsp, USER_STACK - f->rsp, true);
 	check_address(f->rsp);
     uint64_t number = f->R.rax;
-	// uint64_t *arg[6];
 	switch (number) {
 		case SYS_HALT:
             // printf("halt\n");
 			halt();
 			break;
 		case SYS_EXIT:
-            // printf("hi\n");
-            // printf("exit:%d\n", f->R.rdi);
+            // printf("--------------exit:%d\n", f->R.rdi);
 			// get_argument(f->rsp, arg, 1);
 			exit(f->R.rdi);
 			break;
-		case SYS_CREATE:
+		case SYS_CREATE: {
+
             // printf("create\n");
 			// get_argument(f->rsp, arg, 2);
 			f->R.rax = create(f->R.rdi, f->R.rsi);
 			break;
-		case SYS_OPEN2: 
-            // printf("handler open : %s\n", f->R.rdi);
-			// get_argument(f->R.rdi, arg, 1);
-            // char * open_arg = (char *)f->R.rdi;
+        }
+		case SYS_OPEN: 
 			f->R.rax = open(f->R.rdi);
-            // printf("rtn_fd:%d\n", rtn_fd);
+
 			break;
         case SYS_REMOVE: 
             // printf("remove\n");
             // get_argument(f->rsp, arg, 1);
-            f->R.rax=remove(f->R.rdi);
+            f->R.rax = remove(f->R.rdi);
             break;
         case SYS_FORK:
-            // printf("fork\n");
+            memcpy(&thread_current()->fork_tf, f,sizeof(struct intr_frame));
+            f->R.rax = fork(f->R.rdi);
 			break;
         case SYS_EXEC:
             // check_address(f->rsp);
-            f->R.rax = exec(f->R.rdi);  // 왜 rax로 받는지?
+            f->R.rax = exec(f->R.rdi);
             break;
         case SYS_WAIT:
-            // printf("wait\n");
+            f->R.rax = wait(f->R.rdi);
             break;
-        case SYS_FILESIZE:
+        case SYS_FILESIZE: {
             // printf("filesize\n");
             f->R.rax = filesize(f->R.rdi);
             break;
-        case SYS_READ: 
 
-            // printf("read\n");
+        }
+        case SYS_READ: {
             f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
             break;
-        case SYS_WRITE:
-
-            // get_argument(f->R.rsi, arg, 3);
-            // printf("syscall-write\n");
-            // printf("rdi:%d\n", f->R.rdi);
+        }
+        case SYS_WRITE:{
             f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
-            // printf("write\n");
             break;
+        }
         case SYS_SEEK:
+            {
             seek (f->R.rdi, f->R.rsi);
             break;
+            }
         case SYS_TELL:
-            tell (f->R.rdi);
+            f->R.rax = tell (f->R.rdi);
             break;
         case SYS_CLOSE:
             close(f->R.rdi);
             break;
-
+		default:
+            // printf("default\n");
+			thread_exit ();
 	}
+
+	
 }
 
 
@@ -175,20 +189,22 @@ halt (void) {
 /*-------------------------- project.2-System call -----------------------------*/
 void
 exit (int status) {
-    struct thread *curr = thread_current();
-    curr->exit_status = status;
-    printf("%s: exit(%d)\n", thread_current()->name, thread_current()->exit_status);
-    thread_exit();
+    // printf("hi\n");
+	struct thread *t = thread_current();
+    t->exit_status = status;
+	printf("%s: exit(%d)\n", t->name, status);
+	thread_exit();
 }
 /*-------------------------- project.2-System call -----------------------------*/
 
 /*-------------------------- project.2-System call -----------------------------*/
 bool create(const char *file , unsigned initial_size) {
 	// printf("create\n");
- if (file)
-        return filesys_create(file,initial_size); // ASSERT, dir_add (name!=NULL)
-    else
-        exit(-1);
+    if (file == NULL) exit(-1);
+    // lock_acquire(&filesys_lock);
+    bool result = (filesys_create (file, initial_size));
+    // lock_release(&filesys_lock);
+    return result;
 }
 /*-------------------------- project.2-System call -----------------------------*/
 
@@ -276,13 +292,7 @@ int read (int fd, void*buffer, unsigned size) {
     int cur_size = -1;
     if (f){
         if (fd == 0){
-        // rd_buf[cur_size] = input_getc();
-        // while (cur_size < size && rd_buf[cur_size] != '\n') {
-        //     cur_size ++;
             cur_size = input_getc();
-        // }
-        // cur_size ++;
-        // rd_buf[cur_size] = '\0';
         }
         else {
             cur_size = file_read(f, buffer, size);
@@ -304,3 +314,22 @@ unsigned tell(int fd){
 void close(int fd){
     process_close_file(fd);
 }
+
+/*-------------------------- project.2-Process -----------------------------*/
+
+
+/*-------------------------- project.2-Process -----------------------------*/
+int wait(pid_t pid) {
+    return process_wait(pid);
+}
+
+/*-------------------------- project.2-Process -----------------------------*/
+
+
+/*-------------------------- project.2-Process -----------------------------*/
+pid_t fork (const char *thread_name) {
+    struct intr_frame *cur_if = &thread_current()->fork_tf;
+    return process_fork (thread_name, cur_if);
+}
+
+/*-------------------------- project.2-Process -----------------------------*/

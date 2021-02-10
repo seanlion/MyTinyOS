@@ -1,19 +1,17 @@
 #ifndef USERPROG_SYSCALL_H
 #define USERPROG_SYSCALL_H
-/*-------------------------- project.2-System Call -----------------------------*/
 #include "threads/synch.h"
-#include <stdbool.h>
-#include <debug.h>
-#include <stddef.h>
+
+/*-------------------------- project.2-System Call -----------------------------*/
+// #include "threads/synch.h"
+// #include <stdbool.h>
+// #include <debug.h>
+// #include <stddef.h>
 /*-------------------------- project.2-System Call -----------------------------*/
 
 
 void syscall_init (void);
 
-/*-------------------------- project.2-System Call -----------------------------*/
-static struct lock filesys_lock;
-typedef int pid_t;
-/*-------------------------- project.2-System Call -----------------------------*/
 
 /*-------------------------- project.2-System call -----------------------------*/
 // void get_argument(void *, uint64_t *, int);
@@ -29,6 +27,4 @@ int filesize(int);
 int read (int , void*, unsigned);
 int write(int, const void *, unsigned );
 /*-------------------------- project.2-System call -----------------------------*/
-
-
 #endif /* userprog/syscall.h */

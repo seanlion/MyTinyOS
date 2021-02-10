@@ -1,5 +1,12 @@
+<<<<<<< HEAD
 {
     "files.associations": {
         "vaddr.h": "c"
     }
+=======
+{
+    "files.associations": {
+        "syscall.h": "c"
+    }
+>>>>>>> f1f9f87c52ce37357b80e6552fe0592bc5c51884
 }

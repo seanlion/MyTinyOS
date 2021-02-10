@@ -115,13 +115,17 @@ struct thread {
     bool is_load;
     bool is_exit;
     struct semaphore sema_exit;
-    struct semaphore sema_load;
+    struct semaphore sema_child_load;
     int exit_status;
 
     int next_fd;
     struct file* fd_table[64];
     /*-------------------------- project.2-Parsing -----------------------------*/
 
+
+    /*-------------------------- project.2-Process -----------------------------*/
+    // struct intr_frame *fork_tf;
+    /*-------------------------- project.2-Process -----------------------------*/
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

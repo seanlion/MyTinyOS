@@ -115,13 +115,22 @@ initd (void *f_name) {
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
-	return thread_create (name,
-			PRI_DEFAULT, __do_fork, thread_current ());
+	// return thread_create (name,
+	// 		PRI_DEFAULT, __do_fork, thread_current ());
+    /*-------------------------- project.2-Process  -----------------------------*/
+    struct thread* cur_t = thread_current();
+    int child_pid = thread_create (name, cur_t->priority, __do_fork, cur_t);
+    sema_down(&cur_t->sema_child_load);
+
+    // 자식이면 return 0, 부모이면 return child_pid
+    return child_pid;
+    /*-------------------------- project.2-Process  -----------------------------*/
 }
 
 #ifndef VM
 /* Duplicate the parent's address space by passing this function to the
  * pml4_for_each. This is only for the project 2. */
+// aux = &parrent thread
 static bool
 duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	struct thread *current = thread_current ();
@@ -129,23 +138,34 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	void *parent_page;
 	void *newpage;
 	bool writable;
-
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
-
+    /*-------------------------- project.2-Process  -----------------------------*/
+    if (is_kernel_vaddr(va)) return true;
+    /*-------------------------- project.2-Process  -----------------------------*/
 	/* 2. Resolve VA from the parent's page map level 4. */
+    // 부모의 pml4를 자식의 pml4로 복사 하기위해서, 부모pml4의 va를 가져온다.
 	parent_page = pml4_get_page (parent->pml4, va);
+
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
+    /*-------------------------- project.2-Process  -----------------------------*/
+    newpage = palloc_get_page(PAL_USER);
+    /*-------------------------- project.2-Process  -----------------------------*/
 
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
+    /*-------------------------- project.2-Process  -----------------------------*/
+    memcpy(newpage, parent_page, PGSIZE);
+    writable = is_writable(pte);
+    /*-------------------------- project.2-Process  -----------------------------*/
 
 	/* 5. Add new page to child's page table at address VA with WRITABLE
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
 		/* 6. TODO: if fail to insert page, do error handling. */
+        return false;
 	}
 	return true;
 }
@@ -161,9 +181,11 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-	struct intr_frame *parent_if;
+	// struct intr_frame *parent_if;
+    /*-------------------------- project.2-Process  -----------------------------*/
+    struct intr_frame *parent_if = &parent->tf;
+    /*-------------------------- project.2-Process  -----------------------------*/
 	bool succ = true;
-
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
 
@@ -171,7 +193,7 @@ __do_fork (void *aux) {
 	current->pml4 = pml4_create();
 	if (current->pml4 == NULL)
 		goto error;
-
+    // activate는 virtual address와 physical address를 연결시킨다.
 	process_activate (current);
 #ifdef VM
 	supplemental_page_table_init (&current->spt);
@@ -187,13 +209,25 @@ __do_fork (void *aux) {
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
+    /*-------------------------- project.2-Process  -----------------------------*/
+    for (int i = 2 ; i < parent->next_fd ; i++) {
+        current->fd_table[i] = file_duplicate(parent->fd_table[i]);
+    }
+    current->next_fd = parent->next_fd;
+    sema_up(&parent->sema_child_load);
+    /*-------------------------- project.2-Process  -----------------------------*/
 
 	process_init ();
-
 	/* Finally, switch to the newly created process. */
 	if (succ)
+        /*-------------------------- project.2-Process  -----------------------------*/
+        parent_if->R.rax = 0;
+        /*-------------------------- project.2-Process  -----------------------------*/
 		do_iret (&if_);
 error:
+    /*-------------------------- project.2-Process  -----------------------------*/
+    sema_up(&parent->sema_child_load);
+    /*-------------------------- project.2-Process  -----------------------------*/
 	thread_exit ();
 }
 
@@ -288,14 +322,23 @@ process_wait (tid_t child_tid UNUSED) {
     struct thread * child_t = get_child_process(child_tid);
     if (child_t == NULL) return -1;
 
-    sema_down(&child_t->sema_exit);
+    // while (!(child_t->is_exit)) {
+    //     sema_down(&child_t->sema_exit);
+    // }
 
-    
+    // int rtn_status = child_t->exit_status;
+    // remove_child_process(child_t);
+    // return rtn_status;
+    // sema_down(&child_t->sema_exit);
+
+
     if (child_t->is_exit) {
         int rtn_status = child_t->exit_status;
         remove_child_process(child_t);
         return rtn_status;
     }
+
+    sema_down(&child_t->sema_exit);
 
     remove_child_process(child_t);
     return -1;

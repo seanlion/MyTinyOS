@@ -241,7 +241,7 @@ tid_t thread_create(const char *name, int priority,
     struct thread *par_t = thread_current();
     t->is_load = false;
     t->is_exit = false;
-    sema_init(&t->sema_load, 0);
+    sema_init(&t->sema_child_load, 0);
     sema_init(&t->sema_exit, 0);
     list_push_back(&par_t->my_child, &t->child_elem);
     t->exit_status = 0;

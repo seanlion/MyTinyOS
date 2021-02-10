@@ -67,6 +67,7 @@ int filesize(int);
 int read (int , void*, unsigned);
 int write(int, const void *, unsigned );
 int wait(tid_t);
+pid_t fork (const char *);
 /*-------------------------- project.2-System call -----------------------------*/
 
 
@@ -142,7 +143,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
             f->R.rax = remove(f->R.rdi);
             break;
         case SYS_FORK:
-            // printf("fork\n");
+            // memcpy(, )
+            f->R.rax = fork(f->R.rdi);
 			break;
         case SYS_EXEC:
             // check_address(f->rsp);
@@ -386,4 +388,10 @@ int wait(tid_t tid) {
 /*-------------------------- project.2-Process -----------------------------*/
 
 
+/*-------------------------- project.2-Process -----------------------------*/
+pid_t fork (const char *thread_name) {
+    struct intr_frame *cur_if = &thread_current()->tf;
+    return process_fork (thread_name, cur_if);
+}
 
+/*-------------------------- project.2-Process -----------------------------*/

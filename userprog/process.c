@@ -18,6 +18,9 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+#include <debug.h>
+#include <stddef.h>
+#include <stdbool.h>
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -26,6 +29,65 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
+
+/* We load ELF binaries.  The following definitions are taken
+ * from the ELF specification, [ELF1], more-or-less verbatim.  */
+
+/* ELF types.  See [ELF1] 1-2. */
+#define EI_NIDENT 16
+
+#define PT_NULL    0            /* Ignore. */
+#define PT_LOAD    1            /* Loadable segment. */
+#define PT_DYNAMIC 2            /* Dynamic linking info. */
+#define PT_INTERP  3            /* Name of dynamic loader. */
+#define PT_NOTE    4            /* Auxiliary info. */
+#define PT_SHLIB   5            /* Reserved. */
+#define PT_PHDR    6            /* Program header table. */
+#define PT_STACK   0x6474e551   /* Stack segment. */
+
+#define PF_X 1          /* Executable. */
+#define PF_W 2          /* Writable. */
+#define PF_R 4          /* Readable. */
+
+/* Executable header.  See [ELF1] 1-4 to 1-8.
+ * This appears at the very beginning of an ELF binary. */
+struct ELF64_hdr {
+	unsigned char e_ident[EI_NIDENT];
+	uint16_t e_type;
+	uint16_t e_machine;
+	uint32_t e_version;
+	uint64_t e_entry;
+	uint64_t e_phoff;
+	uint64_t e_shoff;
+	uint32_t e_flags;
+	uint16_t e_ehsize;
+	uint16_t e_phentsize;
+	uint16_t e_phnum;
+	uint16_t e_shentsize;
+	uint16_t e_shnum;
+	uint16_t e_shstrndx;
+};
+
+struct ELF64_PHDR {
+	uint32_t p_type;
+	uint32_t p_flags;
+	uint64_t p_offset;
+	uint64_t p_vaddr;
+	uint64_t p_paddr;
+	uint64_t p_filesz;
+	uint64_t p_memsz;
+	uint64_t p_align;
+};
+
+/* Abbreviations */
+#define ELF ELF64_hdr
+#define Phdr ELF64_PHDR
+
+static bool setup_stack (struct intr_frame *if_);
+static bool validate_segment (const struct Phdr *, struct file *);
+static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
+		uint32_t read_bytes, uint32_t zero_bytes,
+		bool writable);
 
 /* General process initializer for initd and other process. */
 static void
@@ -211,11 +273,11 @@ process_exec (void *f_name) {
 
 
     /*-------------------------- project.2-Parsing -----------------------------*/
-	char *token, *ptr, *last, *name_copy;
+	char *token, *ptr, *last;
 	int token_count = 0;
 	char* arg_list[64];
-	strlcpy(name_copy, f_name, strlen(f_name)+1);
-	token = strtok_r(name_copy, " ", &last);
+	strlcpy(file_static_name, f_name, strlen(f_name)+1);
+	token = strtok_r(file_static_name, " ", &last);
 	char *tmp_save = token;
 	arg_list[token_count] = token;
 	while ( token != NULL)
@@ -238,10 +300,8 @@ process_exec (void *f_name) {
 
 	/* If load failed, quit. */
     /*-------------------------- project.2-Parsing -----------------------------*/
-    if(is_kernal_vaddr(file_name)){
+    if(is_kernel_vaddr(file_name))
 	    palloc_free_page (file_name);
-
-    }
     /*-------------------------- project.2-Parsing -----------------------------*/
 	if (!success)
 		return -1;
@@ -317,64 +377,7 @@ process_activate (struct thread *next) {
 	tss_update (next);
 }
 
-/* We load ELF binaries.  The following definitions are taken
- * from the ELF specification, [ELF1], more-or-less verbatim.  */
 
-/* ELF types.  See [ELF1] 1-2. */
-#define EI_NIDENT 16
-
-#define PT_NULL    0            /* Ignore. */
-#define PT_LOAD    1            /* Loadable segment. */
-#define PT_DYNAMIC 2            /* Dynamic linking info. */
-#define PT_INTERP  3            /* Name of dynamic loader. */
-#define PT_NOTE    4            /* Auxiliary info. */
-#define PT_SHLIB   5            /* Reserved. */
-#define PT_PHDR    6            /* Program header table. */
-#define PT_STACK   0x6474e551   /* Stack segment. */
-
-#define PF_X 1          /* Executable. */
-#define PF_W 2          /* Writable. */
-#define PF_R 4          /* Readable. */
-
-/* Executable header.  See [ELF1] 1-4 to 1-8.
- * This appears at the very beginning of an ELF binary. */
-struct ELF64_hdr {
-	unsigned char e_ident[EI_NIDENT];
-	uint16_t e_type;
-	uint16_t e_machine;
-	uint32_t e_version;
-	uint64_t e_entry;
-	uint64_t e_phoff;
-	uint64_t e_shoff;
-	uint32_t e_flags;
-	uint16_t e_ehsize;
-	uint16_t e_phentsize;
-	uint16_t e_phnum;
-	uint16_t e_shentsize;
-	uint16_t e_shnum;
-	uint16_t e_shstrndx;
-};
-
-struct ELF64_PHDR {
-	uint32_t p_type;
-	uint32_t p_flags;
-	uint64_t p_offset;
-	uint64_t p_vaddr;
-	uint64_t p_paddr;
-	uint64_t p_filesz;
-	uint64_t p_memsz;
-	uint64_t p_align;
-};
-
-/* Abbreviations */
-#define ELF ELF64_hdr
-#define Phdr ELF64_PHDR
-
-static bool setup_stack (struct intr_frame *if_);
-static bool validate_segment (const struct Phdr *, struct file *);
-static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
-		uint32_t read_bytes, uint32_t zero_bytes,
-		bool writable);
 
 /* Loads an ELF executable from FILE_NAME into the current thread.
  * Stores the executable's entry point into *RIP
@@ -389,29 +392,6 @@ load (const char *file_name, struct intr_frame *if_) {
 	bool success = false;
 	int i;
 
-
-    /*-------------------------- project.2-Parsing -----------------------------*/
-    // char *token, *ptr, *last, *name_copy;
-	// int token_count = 0;
-	// char* arg_list[65];
-    // printf("------------------ namecopy : %p\n", name_copy);
-	// strlcpy(name_copy, file_name, (strlen(file_name)+1));
-    // // printf("------------------ strlcopt : %s\n", name_copy);
-	// token = strtok_r(name_copy, " ", &last);
-    // // printf("------------------ 1\n", name_copy);
-	// char *tmp_save = token;
-	// arg_list[token_count] = token;
-    // // printf("------------------ 2\n", name_copy);
-	// while ( token != NULL)
-	// {
-	// 	token = strtok_r(NULL, " ", &last);
-	// 	token_count ++;
-	// 	arg_list[token_count] = token;
-	// }
-    /*-------------------------- project.2-Parsing -----------------------------*/
-
-
-
 	/* Allocate and activate page directory. */
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
@@ -422,14 +402,11 @@ load (const char *file_name, struct intr_frame *if_) {
 	file = filesys_open (file_name);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
-        /*-------------------------- project.2-Parsing -----------------------------*/
-        // printf ("load: %s: open failed\n", tmp_save);
-        /*-------------------------- project.2-Parsing -----------------------------*/
 		goto done;
 	}
 
 
-	/* Read and verify executable header. */
+/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
 			|| ehdr.e_type != 2
@@ -438,12 +415,8 @@ load (const char *file_name, struct intr_frame *if_) {
 			|| ehdr.e_phentsize != sizeof (struct Phdr)
 			|| ehdr.e_phnum > 1024) {
 		printf ("load: %s: error loading executable\n", file_name);
-        /*-------------------------- project.2-Parsing -----------------------------*/
-        // printf ("load: %s: error loading executable\n", tmp_save);
-        /*-------------------------- project.2-Parsing -----------------------------*/
 		goto done;
 	}
-
 
 	/* Read program headers. */
 	file_ofs = ehdr.e_phoff;
@@ -506,17 +479,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	if_->rip = ehdr.e_entry;
 
 	/* TODO: Your code goes here.
-
-
-    /*-------------------------- project.2-Parsing -----------------------------*/
-    // passing
-    // printf("------------------ 3\n", name_copy);
-    // argument_stack(&arg_list, token_count , if_);
-	// hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
-	/*-------------------------- project.2-Parsing -----------------------------*/
-
-
-	/* TODO: Implement argument passing (see project2/argument_passing.html). */
+	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 
 	success = true;
 
@@ -524,6 +487,7 @@ done:
 	/* We arrive here whether the load is successful or not. */
 	file_close (file);
 	return success;
+
 }
 
 
@@ -791,58 +755,6 @@ void argument_stack(char **argv, int argc, struct intr_frame *if_)
 
 
 
-
-
-/*-------------------------- project.2-Parsing -----------------------------*/
-// void argument_stack(char **parse ,int count ,struct intr_frame *if_)
-// {
-// 	void* cur_rsp = if_->rsp;
-// 	char* tmp[65] ;
-// 	for (int i = count -1 ; i > -1; i--)
-// 	{
-// 		// for (int j = strlen(parse[i]); j > -1 ; j--)
-// 		// {
-// 		// 	cur_rsp = cur_rsp - sizeof(char);
-// 		// 	*(char *)cur_rsp = parse[i][j];
-// 		// }
-// 		// tmp[i] = cur_rsp;
-//         int argv_len = strlen(tmp[i]);
-//         if_->rsp = if_->rsp-(argv_len+1);
-//         tmp[i] = if_->rsp;
-//         memcpy(if_->rsp, parse[i], argv_len+1);
-
-
-
-// 	}
-	
-// 	size_t alignment = (size_t) cur_rsp % 8;
-
-	
-// 	if (alignment)
-// 	{
-// 		cur_rsp = cur_rsp - alignment;
-// 	}
-
-// 	cur_rsp = cur_rsp - sizeof(char *);
-//     *(uint64_t*) cur_rsp = 0; 
-// 	for (int k = count - 1 ; k > -1 ; k--)
-// 	{
-// 		cur_rsp = cur_rsp - sizeof(char*); 
-// 		*(uint64_t*)cur_rsp = tmp[k];
-//         // printf("arg[%d] : %s\n", **(char*)cur_rsp
-// 	}
-// 	if_->R.rsi = cur_rsp;
-// 	cur_rsp = cur_rsp - sizeof(void *);
-//     // printf("cur_rsp:%p, %s\n", cur_rsp, (char*) cur_rsp);
-// 	if_->R.rdi = count;
-// 	if_->rsp = cur_rsp;
-//     *(uint64_t *)cur_rsp = 0;
-//     // printf("if_->Rsp:%p, %s\n", if_->rsp, (char*) if_->rsp);
-// }
-/*-------------------------- project.2-Parsing -----------------------------*/
-
-
-
 /*-------------------------- project.2-Process -----------------------------*/
 // struct thread *get_child_process(int pid) {
 // 	struct thread *t = thread_current();
@@ -878,12 +790,16 @@ void argument_stack(char **argv, int argc, struct intr_frame *if_)
 
 /*-------------------------- project.2-System Call -----------------------------*/
 int process_add_file(struct file *f) {
-    struct thread *t = thread_current();
-    int rtn_fd = t->next_fd;
-    // printf("add_file_fd:%d\n", rtn_fd);
-    t->fd_table[rtn_fd] = f;
-    t->next_fd += 1;
-    return rtn_fd;
+    // struct thread *t = thread_current();
+    // int rtn_fd = t->next_fd;
+    // // printf("add_file_fd:%d\n", rtn_fd);
+    // t->fd_table[rtn_fd] = f;
+    // t->next_fd += 1;
+    // return rtn_fd;
+	struct thread *curr = thread_current();
+	// *(curr->fd_table + curr->next_fd) = f;
+	curr->fd_table[curr->next_fd] = f;
+	return curr->next_fd++;
 }
 /*-------------------------- project.2-System Call -----------------------------*/
 
@@ -891,26 +807,20 @@ int process_add_file(struct file *f) {
 /*-------------------------- project.2-System Call -----------------------------*/
 struct file * process_get_file(int fd) {
     struct thread *t = thread_current();
+	struct file* fd_file = t->fd_table[fd];
     // if (fd < 2 || t->next_fd <= fd) return NULL;
-    if (t->fd_table[fd])
-    {
-        // printf("get_file_fd:%d\n", fd);
-        return t->fd_table[fd];
-    }
-    else
-    {
-        return NULL;
-    }
+	if(fd_file)
+		return fd_file;
+	else
+		return	NULL;
 }
 /*-------------------------- project.2-System Call -----------------------------*/
 
 
 /*-------------------------- project.2-System Call -----------------------------*/
 void process_close_file(int fd) {
-    struct thread *t = thread_current();
-    if (fd < 2 || t->next_fd <= fd) return;
-    file_close(t->fd_table[fd]);
-    t->fd_table[fd] = NULL;
+    file_close(process_get_file(fd));
+	thread_current() -> fd_table[fd] = NULL;
 }
 /*-------------------------- project.2-System Call -----------------------------*/
 
@@ -921,11 +831,11 @@ void process_close_file(int fd) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
-void process_exit(void) {
-    struct thread *t = thread_current();
-    for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
+void process_exit (void) {
+    struct thread *t = thread_current ();
+    for (int fd = t->next_fd-1; fd >= 2 ; t->next_fd --)
     {
-        process_close_file(t->next_fd);
+        process_close_file(fd);
     }
     // palloc_free_multiple(t->fd_table, 2);
     process_cleanup();

@@ -4,6 +4,7 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -14,7 +15,6 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -140,7 +140,7 @@ void thread_init(void)
 	/*-------------------------- project.1 -----------------------------*/
 	// sleep_list 초기화
 	list_init(&sleep_list);
-	next_tick_to_awake = INT64_MAX;
+	// next_tick_to_awake = INT64_MAX;
 	/*-------------------------- project.1 -----------------------------*/
 
 	/* Set up a thread structure for the running thread. */
@@ -248,11 +248,11 @@ tid_t thread_create(const char *name, int priority,
     /*-------------------------- project.2-Process -----------------------------*/
 
     /*-------------------------- project.2-System Call -----------------------------*/
+    t->next_fd = 2;
     t->fd_table[0] = 1;
     t->fd_table[1] = 1;
     
     // t->fd_table = palloc_get_multiple(PAL_ZERO, fd);
-    t->next_fd = 2;
     /*-------------------------- project.2-System Call -----------------------------*/
 
 
@@ -262,13 +262,9 @@ tid_t thread_create(const char *name, int priority,
 	thread_unblock(t);
 	// list_insert_ordered(&ready_list, &t->elem, &cmp_priority, NULL);
 	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-	struct thread *curr = thread_current();
-	if (cmp_priority(&t->elem, &curr->elem, NULL))
-	{
-		thread_yield();
-	}
-	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-
+  if (priority > thread_get_priority())
+        thread_yield();
+		
 
 	return tid;
 }
@@ -305,7 +301,7 @@ void thread_unblock(struct thread *t)
 	ASSERT(t->status == THREAD_BLOCKED);
 	// list_push_back(&ready_list, &t->elem);
 	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-	list_insert_ordered(&ready_list, &t->elem, &cmp_priority, NULL);
+	list_insert_ordered(&ready_list, &t->elem, cmp_priority, NULL);
 	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 
 	t->status = THREAD_READY;
@@ -375,7 +371,7 @@ void thread_yield(void)
 		{
 		// list_push_back(&ready_list, &curr->elem);
 		/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-		list_insert_ordered(&ready_list, &curr->elem, &cmp_priority, NULL);
+		list_insert_ordered(&ready_list, &curr->elem, cmp_priority, NULL);
 		/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 		}
 	do_schedule(THREAD_READY);
@@ -715,10 +711,10 @@ void thread_sleep(int64_t ticks)
 	// printf("\njoin : thread_sleep\n");
 	struct thread *curr = thread_current();
 	enum intr_level old_level;
-	ASSERT(!intr_context());
 	old_level = intr_disable();
 
 	curr->wakeup_tick = ticks;
+	update_next_tick_to_awake(ticks);
 
 	if (curr != idle_thread)
 	{
@@ -726,7 +722,6 @@ void thread_sleep(int64_t ticks)
 	}
 	// list_push_back(&sleep_list, &curr->elem);
 
-	update_next_tick_to_awake(ticks);
 	do_schedule(THREAD_BLOCKED);
 	intr_set_level(old_level);
 }
@@ -734,7 +729,8 @@ void thread_sleep(int64_t ticks)
 /* ticks와 next_tick_to_awake를 비교하여 작은 값을 넣는다.*/
 void update_next_tick_to_awake(int64_t ticks)
 {
-	next_tick_to_awake = MIN(next_tick_to_awake, ticks);
+	 if (next_tick_to_awake > ticks)
+        next_tick_to_awake = ticks;
 }
 
 int64_t get_next_tick_to_awake(void)
@@ -772,7 +768,7 @@ bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *a
 	struct thread *t_a = list_entry(a, struct thread, elem);
 	struct thread *t_b = list_entry(b, struct thread, elem);
 	
-	return (t_a->priority) > (t_b->priority);
+	return t_a->priority > t_b->priority;
 }
 
 void test_max_priority(void)
@@ -841,7 +837,7 @@ void refresh_priority (void)
 	
 	if (list_empty(&curr->donations) == false)
 	{
-		list_sort(&curr->donations, &cmp_priority, NULL);
+		list_sort(&curr->donations, cmp_priority, NULL);
 		struct thread *high;
 		high = list_entry(list_front(&curr->donations), struct thread, donation_elem);
 		curr->priority = high->priority;

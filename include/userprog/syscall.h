@@ -16,8 +16,7 @@ typedef int pid_t;
 /*-------------------------- project.2-System Call -----------------------------*/
 
 /*-------------------------- project.2-System call -----------------------------*/
-void check_address(void *);
-void get_argument(void *, uint64_t *, int);
+// void get_argument(void *, uint64_t *, int);
 void halt (void);
 void exit (int );
 int open (const char *);
@@ -28,7 +27,7 @@ unsigned tell (int);
 void close (int);
 int filesize(int);
 int read (int , void*, unsigned);
-int write(int, void *, unsigned );
+int write(int, const void *, unsigned );
 /*-------------------------- project.2-System call -----------------------------*/
 
 

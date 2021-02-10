@@ -33,7 +33,7 @@ void syscall_handler (struct intr_frame *);
 /*-------------------------- project.2-System Call -----------------------------*/
 typedef int pid_t;
 /*-------------------------- project.2-System Call -----------------------------*/
-static struct lock filesys_lock;
+struct lock filesys_lock;
 /*-------------------------- project.2-System call -----------------------------*/
 void check_address(void *);
 void get_argument(void *, uint64_t *, int);
@@ -81,7 +81,7 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
-	check_address(f->rsp);
+	
     uint64_t number = f->R.rax;
 	switch (number) {
 		case SYS_HALT:
@@ -94,15 +94,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			exit(f->R.rdi);
 			break;
 		case SYS_CREATE: {
-
+            check_address(f->R.rdi);
             // printf("create\n");
 			// get_argument(f->rsp, arg, 2);
 			f->R.rax = create(f->R.rdi, f->R.rsi);
 			break;
         }
-		case SYS_OPEN: 
+		case SYS_OPEN:
+            check_address(f->R.rdi);
 			f->R.rax = open(f->R.rdi);
-
 			break;
         case SYS_REMOVE: 
             // printf("remove\n");
@@ -114,7 +114,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
             f->R.rax = fork(f->R.rdi);
 			break;
         case SYS_EXEC:
-            // check_address(f->rsp);
+        
+            // printf("-----------------------------addr:%p\n", f->R.rdi);
+            // check_address(f->R.rdi);
             f->R.rax = exec(f->R.rdi);
             break;
         case SYS_WAIT:
@@ -131,6 +133,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
             break;
         }
         case SYS_WRITE:{
+            check_address(f->R.rdi);
             f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
             break;
         }
@@ -233,7 +236,10 @@ int write(int fd, const void *buffer, unsigned size) {
         else {
             cur_size = file_write(f, buffer, size);
         }
-
+    }
+    else {
+        lock_release(&filesys_lock);
+        return -1;
     }
     lock_release(&filesys_lock);
     return cur_size;
@@ -244,18 +250,27 @@ int write(int fd, const void *buffer, unsigned size) {
 /*-------------------------- project.2-System call -----------------------------*/
 
 int open (const char *file) {
+    // lock_acquire(&filesys_lock);
    if (file)
     {
         struct file * open_file = filesys_open(file);
         if (open_file)
         {
-            return process_add_file(open_file);
+            int result = process_add_file(open_file);
+            // lock_release(&filesys_lock);
+            return result;
         }
         else
+        {
+            // lock_release(&filesys_lock);
             return -1;
+        }
     }
     else
+    {
+        // lock_release(&filesys_lock);
         return -1;
+    }
 
 }
 /*-------------------------- project.2-System call -----------------------------*/
@@ -263,23 +278,32 @@ int open (const char *file) {
 
 /*-------------------------- project.2-System call -----------------------------*/
 int filesize(int fd) {
+    // lock_acquire(&filesys_lock);
     struct file *want_length_file = process_get_file(fd);
     int ret =-1;
     if (want_length_file)
     {
-        ret = file_length(want_length_file); 
+        ret = file_length(want_length_file);
+        // lock_release(&filesys_lock);
         return ret; /* ASSERT (NULL), so we need to branch out */
     }
     else
     {
+        // lock_release(&filesys_lock);
         return ret;
     }
 }
 /*-------------------------- project.2-System call -----------------------------*/
 
 int exec(const char *file){
-    if(process_exec(file))
-        return -1;
+    // lock_acquire(&filesys_lock);
+    if (file == NULL || *file == "") {
+        // lock_release(&filesys_lock);
+        exit(-1);
+    }
+    int result = process_exec(file);
+    // lock_release(&filesys_lock);
+    return result;
 }
 
 
@@ -290,12 +314,16 @@ int read (int fd, void*buffer, unsigned size) {
     struct file *f = process_get_file(fd);
     int cur_size = -1;
     if (f){
-        if (fd == 0){
+        if (fd == 0) {
             cur_size = input_getc();
         }
         else {
             cur_size = file_read(f, buffer, size);
         }
+    }
+    else {
+        lock_release(&filesys_lock);
+        return -1;
     }
     lock_release(&filesys_lock);
     return cur_size;
@@ -303,15 +331,29 @@ int read (int fd, void*buffer, unsigned size) {
 /*-------------------------- project.2-System call -----------------------------*/
 
 void seek(int fd, unsigned position){
+    // lock_acquire(&filesys_lock);
     struct file *target = process_get_file(fd);
     file_seek(target, position);
+    // lock_release(&filesys_lock);
 }
+
+
+
 unsigned tell(int fd){
+    // lock_acquire(&filesys_lock);
     struct file *target = process_get_file(fd);
-    return file_tell(target);
+    unsigned result = file_tell(target);
+    // lock_release(&filesys_lock);
+    return result;
 }
+
+
+
+
 void close(int fd){
+    // lock_acquire(&filesys_lock);
     process_close_file(fd);
+    // lock_release(&filesys_lock);
 }
 
 /*-------------------------- project.2-Process -----------------------------*/
@@ -319,7 +361,10 @@ void close(int fd){
 
 /*-------------------------- project.2-Process -----------------------------*/
 int wait(pid_t pid) {
-    return process_wait(pid);
+    // lock_acquire(&filesys_lock);
+    int result = process_wait(pid);
+    // lock_release(&filesys_lock);
+    return result;
 }
 
 /*-------------------------- project.2-Process -----------------------------*/
@@ -327,8 +372,11 @@ int wait(pid_t pid) {
 
 /*-------------------------- project.2-Process -----------------------------*/
 pid_t fork (const char *thread_name) {
+    // lock_acquire(&filesys_lock);
     struct intr_frame *cur_if = &thread_current()->fork_tf;
-    return process_fork (thread_name, cur_if);
+    pid_t result = process_fork (thread_name, cur_if);
+    // lock_release(&filesys_lock);
+    return result;
 }
 
 /*-------------------------- project.2-Process -----------------------------*/

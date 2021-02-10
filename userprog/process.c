@@ -1,24 +1,3 @@
-// #include "userprog/process.h"
-// #include <debug.h>
-// #include <inttypes.h>
-// #include <round.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include "userprog/gdt.h"
-// #include "userprog/tss.h"
-// #include "filesys/directory.h"
-// #include "filesys/file.h"
-// #include "filesys/filesys.h"
-// #include "threads/flags.h"
-// #include "threads/init.h"
-// #include "threads/interrupt.h"
-// #include "threads/palloc.h"
-// #include "threads/thread.h"
-// #include "threads/mmu.h"
-// #include "threads/vaddr.h"
-// #include "intrinsic.h"
-
 #include "userprog/process.h"
 #include <debug.h>
 #include <inttypes.h>
@@ -46,16 +25,19 @@
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
+#include "userprog/exception.h"
+
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
-
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
 /*-------------------------- project.2-System Call -----------------------------*/
-// static struct lock filesys_lock;
+// static struct lock process_lock;
 /*-------------------------- project.2-System Call -----------------------------*/
 /* We load ELF binaries.  The following definitions are taken
  * from the ELF specification, [ELF1], more-or-less verbatim.  */
@@ -297,7 +279,7 @@ process_exec (void *f_name) {
 	char *file_name = f_name;
     // char *file_name = palloc_get_page(PAL_ZERO);
 
-    char *file_static_name[64];
+    char *file_static_name[48];
     memcpy(file_static_name, file_name, strlen(file_name)+1);
     /*-------------------------- project.2-Parsing -----------------------------*/
 	bool success;
@@ -334,23 +316,25 @@ process_exec (void *f_name) {
 		arg_list[token_count] = token;
 	}
     success = load (tmp_save, &_if);
+    if(!success) return-1;
     argument_stack(arg_list, token_count , &_if);
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
 	/* If load failed, quit. */
     /*-------------------------- project.2-Parsing -----------------------------*/
 
-    if (is_kernel_vaddr(file_name)) {
-	    palloc_free_page (file_name);
-    }
+    // if (is_kernel_vaddr(file_name)) {
+	//     palloc_free_page (file_name);
+    // }
     /*-------------------------- project.2-Parsing -----------------------------*/
-	struct thread* t = thread_current();
-    if (!success) {
+	// struct thread* t = thread_current();
+    // if (!success) {
 
-        t->is_load = 0;
-		return -1;
-    }
-    else t->is_load = 1;
+    //     t->is_load = 0;
+    //     return -1;
+    // }
+    // else t->is_load = 1;
+
 	/* Start switched process. */
 	do_iret (&_if);
 	NOT_REACHED ();
@@ -450,21 +434,21 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Open executable file. */
 	// 	프로그램의 파일을 open 할 때 file_deny_write() 함수를 호출
 	// 실행중인 파일 구조체를 thread 구조체에 추가
-	// lock_acquire(&filesys_lock);
+	// lock_acquire(&process_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
 	file = filesys_open (file_name);
 	if (file == NULL) {
-		// lock_release(&filesys_lock);
+		// lock_release(&process_lock);
+        printf ("load: %s: open failed\n", file_name);
 		/*-------------------------- project.2-Denying write -----------------------------*/
-		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
-	/*-------------------------- project.2-Denying write -----------------------------*/
-	// t->running_file = file;
-	// file_deny_write(file);
-	// lock_release(&filesys_lock);
-	/*-------------------------- project.2-Denying write -----------------------------*/
 
+	/*-------------------------- project.2-Denying write -----------------------------*/
+	t->running_file = file;
+	file_deny_write(t->running_file);
+	// lock_release(&process_lock);
+	/*-------------------------- project.2-Denying write -----------------------------*/
 
 /* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -890,13 +874,14 @@ void process_close_file(int fd) {
 void process_exit(void) {
     struct thread *t = thread_current();
     t->is_exit = true;
-    sema_up(&t->sema_exit);
     for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
     {
         process_close_file(t->next_fd);
 				
     }
+    // file_close(t->running_file);
     // palloc_free_multiple(t->fd_table, 2);
+    sema_up(&t->sema_exit);
     process_cleanup();
 }
 /*-------------------------- project.2-System Call -----------------------------*/

@@ -347,11 +347,8 @@ void thread_exit(void)
 	ASSERT(!intr_context());
 
 #ifdef USERPROG
-
-
-
-
 	process_exit();
+    // sema_up(&thread_current()->sema_exit);
 #endif
 
 	/* Just set our status to dying and schedule another process.

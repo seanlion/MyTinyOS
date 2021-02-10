@@ -9,7 +9,7 @@
 // #include <stddef.h>
 /*-------------------------- project.2-System Call -----------------------------*/
 
-
+// static struct lock filesys_lock;
 void syscall_init (void);
 
 

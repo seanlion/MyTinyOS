@@ -31,10 +31,9 @@ void syscall_handler (struct intr_frame *);
 /*-------------------------- project.2-System call -----------------------------*/
 
 /*-------------------------- project.2-System Call -----------------------------*/
-static struct lock filesys_lock;
 typedef int pid_t;
 /*-------------------------- project.2-System Call -----------------------------*/
-
+static struct lock filesys_lock;
 /*-------------------------- project.2-System call -----------------------------*/
 void check_address(void *);
 void get_argument(void *, uint64_t *, int);

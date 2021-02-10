@@ -54,7 +54,9 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
-
+/*-------------------------- project.2-System Call -----------------------------*/
+// static struct lock filesys_lock;
+/*-------------------------- project.2-System Call -----------------------------*/
 /* We load ELF binaries.  The following definitions are taken
  * from the ELF specification, [ELF1], more-or-less verbatim.  */
 
@@ -448,15 +450,20 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Open executable file. */
 	// 	프로그램의 파일을 open 할 때 file_deny_write() 함수를 호출
 	// 실행중인 파일 구조체를 thread 구조체에 추가
-	lock_acquire(&filesys_lock);
+	// lock_acquire(&filesys_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
 	file = filesys_open (file_name);
 	if (file == NULL) {
-		lock_release(&filesys_lock);
+		// lock_release(&filesys_lock);
 		/*-------------------------- project.2-Denying write -----------------------------*/
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
+	/*-------------------------- project.2-Denying write -----------------------------*/
+	// t->running_file = file;
+	// file_deny_write(file);
+	// lock_release(&filesys_lock);
+	/*-------------------------- project.2-Denying write -----------------------------*/
 
 
 /* Read and verify executable header. */
@@ -887,6 +894,7 @@ void process_exit(void) {
     for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
     {
         process_close_file(t->next_fd);
+				
     }
     // palloc_free_multiple(t->fd_table, 2);
     process_cleanup();

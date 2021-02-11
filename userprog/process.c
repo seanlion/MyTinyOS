@@ -887,7 +887,7 @@ void process_exit(void) {
         process_close_file(t->next_fd);
 				
     }
-    // file_close(t->running_file);
+    file_close(t->running_file);
     // palloc_free_multiple(t->fd_table, 2);
     sema_up(&t->sema_exit);
     process_cleanup();

@@ -119,8 +119,11 @@ sema_up (struct semaphore *sema) {
 			list_sort(&sema->waiters, &cmp_priority, NULL);
 			/*-------------------------- project.1-Priority Sync -----------------------------*/
 			thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+        /*-------------------------- project.2-Process -----------------------------*/
+        
+        /*-------------------------- project.2-Process -----------------------------*/
 		}
-	sema->value++;
+    sema->value++;
 	/*-------------------------- project.1-Priority Sync -----------------------------*/
 	test_max_priority();
 	/*-------------------------- project.1-Priority Sync -----------------------------*/

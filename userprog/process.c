@@ -162,7 +162,6 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
     int child_pid = thread_create (name, cur_t->priority, __do_fork, cur_t);
 	if (child_pid)
 	    sema_down(&cur_t->sema_child_load);
-
     // 자식이면 return 0, 부모이면 return child_pid
     return child_pid;
     /*-------------------------- project.2-Process  -----------------------------*/
@@ -251,6 +250,7 @@ __do_fork (void *aux) {
 	 * TODO:       the resources of parent.*/
     /*-------------------------- project.2-Process  -----------------------------*/
     for (int i = 2 ; i < parent->next_fd ; i++) {
+        if (parent->fd_table[i] == NULL) continue;
         current->fd_table[i] = file_duplicate(parent->fd_table[i]);
     }
     current->next_fd = parent->next_fd;
@@ -358,15 +358,21 @@ process_wait (tid_t child_tid UNUSED) {
 
     /* ----------------------------------- Project2.Process --------------------------------*/
     struct thread *child_t = get_child_process(child_tid);
+    // printf('t_name : %d ', child_tid);
+    // printf("----------------------------------------------1\n");
     if (child_t == NULL) return -1;
-
+    // printf("----------------------------------------------2\n");
    	sema_down(&child_t->sema_exit);
+    // printf("----------------------------------------------3\n");
     if (child_t->is_exit) {
         int rtn_status = child_t->exit_status;
         remove_child_process(child_t);
+        // printf("----------------------------------------------4\n");
         return rtn_status;
     }
+    // printf("----------------------------------------------5\n");
     remove_child_process(child_t);
+    // printf("----------------------------------------------6\n");
     return -1;
     /* ----------------------------------- Project2.Process --------------------------------*/
 }

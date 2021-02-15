@@ -126,14 +126,14 @@ struct thread {
     /*-------------------------- project.2-Parsing -----------------------------*/
 
 
-    /*-------------------------- project.2-Process -----------------------------*/
-    // struct intr_frame *fork_tf;
-    /*-------------------------- project.2-Process -----------------------------*/
+    
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
-
+    /*-------------------------- project.2-Process -----------------------------*/
+    bool fork_fail;
+    /*-------------------------- project.2-Process -----------------------------*/
 
 
 

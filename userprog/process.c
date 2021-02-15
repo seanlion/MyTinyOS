@@ -160,8 +160,14 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
     /*-------------------------- project.2-Process  -----------------------------*/
     struct thread* cur_t = thread_current();
     int child_pid = thread_create (name, cur_t->priority, __do_fork, cur_t);
-	if (child_pid)
-	    sema_down(&cur_t->sema_child_load);
+    if (!(child_pid == TID_ERROR))
+    {
+        struct thread* child_t = get_child_process(child_pid);
+        sema_down(&cur_t->sema_child_load);
+        if (child_t->fork_fail) {
+            child_pid = -1;
+        }
+    }	    
     // 자식이면 return 0, 부모이면 return child_pid
     return child_pid;
     /*-------------------------- project.2-Process  -----------------------------*/
@@ -204,6 +210,7 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	/* 5. Add new page to child's page table at address VA with WRITABLE
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
+        palloc_free_page(newpage);
 		/* 6. TODO: if fail to insert page, do error handling. */
         return false;
 	}
@@ -267,6 +274,9 @@ __do_fork (void *aux) {
 error:
     /*-------------------------- project.2-Process  -----------------------------*/
     sema_up(&parent->sema_child_load);
+    /*-------------------------- project.2-oom  -----------------------------*/
+    current->fork_fail = true;
+    /*-------------------------- project.2-oom  -----------------------------*/
     /*-------------------------- project.2-Process  -----------------------------*/
 	thread_exit ();
 }
@@ -837,14 +847,12 @@ void remove_child_process(struct thread *cp) {
 
 /*-------------------------- project.2-System Call -----------------------------*/
 int process_add_file(struct file *f) {
-    // struct thread *t = thread_current();
-    // int rtn_fd = t->next_fd;
-    // // printf("add_file_fd:%d\n", rtn_fd);
-    // t->fd_table[rtn_fd] = f;
-    // t->next_fd += 1;
-    // return rtn_fd;
+
 	struct thread *curr = thread_current();
-	// *(curr->fd_table + curr->next_fd) = f;
+    if (curr->next_fd > 63) {
+        file_close(f);
+        return -1;
+    }
 	curr->fd_table[curr->next_fd] = f;
 	return curr->next_fd++;
 }

@@ -839,8 +839,22 @@ struct thread *get_child_process(int pid) {
 void remove_child_process(struct thread *cp) {
     struct list_elem* remove_elem = &cp->child_elem;
     list_remove(remove_elem);
+	list_remove(&cp->elem);
     palloc_free_page(cp);
 }
+
+// void remove_child_process(struct thread *cp) {
+//     struct list_elem* remove_elem = &cp->child_elem;
+// 	if (!list_empty(&cp->my_child)){
+//     	list_remove(remove_elem);
+// 	}
+// 	list_remove(&cp->elem);
+// 	// if (!list_empty(&cp->donations))
+// 	// {
+// 	// 	list_remove(&cp->donation_elem);
+// 	// }
+//     palloc_free_page(cp);
+// }
 /*-------------------------- project.2-Process -----------------------------*/
 
 

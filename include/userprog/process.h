@@ -4,6 +4,11 @@
 #include "threads/thread.h"
 
 
+/* ---------------------- Project.3 vm_entry ----------------------------------  */
+typedef int tid_t;
+/* ---------------------- Project.3 vm_entry ----------------------------------  */
+
+
 tid_t process_create_initd (const char *file_name);
 tid_t process_fork (const char *name, struct intr_frame *if_);
 int process_exec (void *f_name);
@@ -23,4 +28,20 @@ void process_exit(void);
 struct thread *get_child_process(int);
 void remove_child_process(struct thread *);
 /*-------------------------- project.2-System call -----------------------------*/
+
+
+/* ---------------------- Project.3 vm_entry ----------------------------------  */
+typedef int32_t off_t;
+
+struct load_info {
+    struct file *info_file;
+    off_t ofs;
+    uint8_t *upage;
+    uint32_t read_bytes;
+    uint32_t zero_bytes;
+    bool writable;
+};
+/* ---------------------- Project.3 vm_entry ----------------------------------  */
+
+
 #endif /* userprog/process.h */

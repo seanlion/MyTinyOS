@@ -2,6 +2,10 @@
 #define VM_VM_H
 #include <stdbool.h>
 #include "threads/palloc.h"
+/* ---------------------- Project.3 vm_entry ----------------------------------  */
+#include "lib/kernel/hash.h"
+// #include "userprog/process.h"
+/* ---------------------- Project.3 vm_entry ----------------------------------  */
 
 enum vm_type {
 	/* page not initialized */
@@ -19,6 +23,7 @@ enum vm_type {
 	 * markers, until the value is fit in the int. */
 	VM_MARKER_0 = (1 << 3),
 	VM_MARKER_1 = (1 << 4),
+	VM_STACK = (1 << 5),
 
 	/* DO NOT EXCEED THIS VALUE. */
 	VM_MARKER_END = (1 << 31),
@@ -42,6 +47,20 @@ struct thread;
  * DO NOT REMOVE/MODIFY PREDEFINED MEMBER OF THIS STRUCTURE. */
 struct page {
 	const struct page_operations *operations;
+	/* ---------------------- Project.3 vm_entry ----------------------------------  */
+	enum vm_type type; 
+	bool writable;
+	bool is_loaded;
+	
+	struct file* f;
+	struct list_elem mmap_elem;
+
+	size_t offset;
+	size_t read_bytes;
+	size_t zero_bytes;
+	size_t swap_slot;
+	struct hash_elem hash_elem;
+	/* ---------------------- Project.3 vm_entry ----------------------------------  */
 	void *va;              /* Address in terms of user space */
 	struct frame *frame;   /* Back reference for frame */
 
@@ -85,6 +104,7 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
+	struct hash vm;
 };
 
 #include "threads/thread.h"
@@ -108,5 +128,16 @@ bool vm_alloc_page_with_initializer (enum vm_type type, void *upage,
 void vm_dealloc_page (struct page *page);
 bool vm_claim_page (void *va);
 enum vm_type page_get_type (struct page *page);
+
+
+/* ---------------------- Project.3 vm_entry ----------------------------------  */
+bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
+unsigned page_hash (const struct hash_elem *p_, void *aux UNUSED);
+struct page * page_lookup (const void *address);
+void page_delete(struct hash_elem *e, void *aux);
+void hash_destructor(struct hash_elem *e, void *aux);
+struct page * page_lookup (const void *address);
+// void vm_destroy (struct hash *vm);
+/* ---------------------- Project.3 vm_entry ----------------------------------  */
 
 #endif  /* VM_VM_H */

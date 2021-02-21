@@ -26,5 +26,6 @@ void close (int);
 int filesize(int);
 int read (int , void*, unsigned);
 int write(int, const void *, unsigned );
+int exec(const char *);
 /*-------------------------- project.2-System call -----------------------------*/
 #endif /* userprog/syscall.h */

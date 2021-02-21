@@ -131,9 +131,6 @@ struct thread {
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
-    /*-------------------------- project.2-Process -----------------------------*/
-    bool fork_fail;
-    /*-------------------------- project.2-Process -----------------------------*/
 
 
 

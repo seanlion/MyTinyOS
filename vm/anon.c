@@ -21,7 +21,10 @@ static const struct page_operations anon_ops = {
 void
 vm_anon_init (void) {
 	/* TODO: Set up the swap_disk. */
-	swap_disk = NULL;
+	/* ---------------------- Project.3 vm_entry ----------------------------------  */
+	// swap_disk = NULL;
+	swap_disk = disk_get(1,1);
+	/* ---------------------- Project.3 vm_entry ----------------------------------  */
 }
 
 /* Initialize the file mapping */
@@ -29,6 +32,9 @@ bool
 anon_initializer (struct page *page, enum vm_type type, void *kva) {
 	/* Set up the handler */
 	page->operations = &anon_ops;
+	/* ---------------------- Project.3 vm_entry ----------------------------------  */
+	page->type = type;
+	/* ---------------------- Project.3 vm_entry ----------------------------------  */
 
 	struct anon_page *anon_page = &page->anon;
 }

@@ -19,7 +19,7 @@
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/palloc.h"
-#include "threads/thread.h"
+// #include "threads/thread.h"
 #include "threads/mmu.h"
 #include "threads/synch.h"
 #include "threads/malloc.h"
@@ -27,6 +27,7 @@
 #include "intrinsic.h"
 
 #include "userprog/exception.h"
+
 
 
 #ifdef VM
@@ -164,7 +165,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
     {
         struct thread* child_t = get_child_process(child_pid);
         sema_down(&cur_t->sema_child_load);
-        if (child_t->fork_fail) {
+        if (!(child_t->is_load)) {
             child_pid = -1;
         }
     }	    
@@ -275,7 +276,7 @@ error:
     /*-------------------------- project.2-Process  -----------------------------*/
     sema_up(&parent->sema_child_load);
     /*-------------------------- project.2-oom  -----------------------------*/
-    current->fork_fail = true;
+    current->is_load = false;
     /*-------------------------- project.2-oom  -----------------------------*/
     /*-------------------------- project.2-Process  -----------------------------*/
 	thread_exit ();
@@ -301,11 +302,6 @@ process_exec (void *f_name) {
 	_if.cs = SEL_UCSEG;
 	_if.eflags = FLAG_IF | FLAG_MBS;
 
-	/*-------------------------- project.2-Parsing -----------------------------*/
-	// 인자들을 띄어쓰기 기준으로 토큰화 및 토큰의 개수 계산
-	// strtok_r() 함수 이용
-	// /* Initialize interrupt frame and load executable. */
-	/*-------------------------- project.2-Parsing -----------------------------*/
 
 	/* We first kill the current context */
 	process_cleanup ();
@@ -330,20 +326,6 @@ process_exec (void *f_name) {
     argument_stack(arg_list, token_count , &_if);
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
-	/* If load failed, quit. */
-    /*-------------------------- project.2-Parsing -----------------------------*/
-
-    // if (is_kernel_vaddr(file_name)) {
-	//     palloc_free_page (file_name);
-    // }
-    /*-------------------------- project.2-Parsing -----------------------------*/
-	// struct thread* t = thread_current();
-    // if (!success) {
-
-    //     t->is_load = 0;
-    //     return -1;
-    // }
-    // else t->is_load = 1;
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -706,6 +688,62 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+	/* ---------------------- Project.3 load ---------------------------------- */
+	// ---------------------------------------------
+	struct load_info *info = (struct load_info*) aux;
+	
+	struct file *file = info->info_file;
+	off_t ofs = info->ofs;
+	uint8_t *upage = info->upage;
+	uint32_t read_bytes = info->read_bytes;
+	uint32_t zero_bytes = info->zero_bytes;
+	bool writable = info->writable;
+	
+	file_seek (file, ofs);
+	// while (read_bytes > 0 || zero_bytes > 0) {
+		/* Do calculate how to fill this page.
+		 * We will read PAGE_READ_BYTES bytes from FILE
+		 * and zero the final PAGE_ZERO_BYTES bytes. */
+		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+		size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+
+
+		if(!vm_do_claim_page(page)){
+			return false;
+		}
+
+		// /* Get a page of memory. */
+		// uint8_t *kpage = palloc_get_page (PAL_USER);
+		// if (kpage == NULL)
+		// 	return false;
+
+		uint8_t *kpage = page->frame->kva;
+
+		/* Load this page. */
+		if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes) {
+			palloc_free_page (kpage);
+			free(page->frame);
+			page->frame = NULL;
+			return false;
+		}
+		memset (kpage + page_read_bytes, 0, page_zero_bytes);
+
+		/* Add the page to the process's address space. */
+		// if (!install_page (upage, kpage, writable)) {
+		// 	printf("fail\n");
+		// 	palloc_free_page (kpage);
+		// 	free(page->frame);
+		// 	page->frame = NULL;
+		// 	return false;
+		// }
+
+	// 	/* Advance. */
+	// 	read_bytes -= page_read_bytes;
+	// 	zero_bytes -= page_zero_bytes;
+	// 	upage += PGSIZE;
+	// }
+	return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -737,10 +775,23 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		void *aux = NULL;
+		/* ---------------------- Project.3 vm_entry ----------------------------------  */
+		struct load_info *info = malloc(sizeof *info);
+		
+		info->info_file = file;
+		info->ofs = ofs;
+		info->upage = upage;
+		info->read_bytes = read_bytes;
+		info->zero_bytes = zero_bytes;
+		info->writable = writable;
+
+		void *aux = info;
+
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, aux))
 			return false;
+		/* ---------------------- Project.3 vm_entry ----------------------------------  */
+
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
@@ -760,13 +811,27 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
+	/* ---------------------- Project.3 Anonymous Page ----------------------------------  */
 
+	struct page *p = spt_find_page(&thread_current()->spt, stack_bottom);
+	success = vm_do_claim_page(p);
+	if(success){
+		if_->rsp = USER_STACK;
+	}
+	else{
+		palloc_free_page(p->frame->kva);
+		free(p->frame);
+		p->frame = NULL;
+	}
+	p->type = VM_TYPE(p->type) | VM_STACK;
+
+	/* ---------------------- Project.3 Anonymous Page ----------------------------------  */
 	return success;
 }
 #endif /* VM */
 
 
-// 새힘
+// 새힘d
 void argument_stack(char **argv, int argc, struct intr_frame *if_)
 {
     /* rsp : rsp 주소를 담고있는 공간이다!! REAL rsp : *rsp   */
@@ -910,6 +975,11 @@ void process_exit(void) {
 				
     }
     file_close(t->running_file);
+	/* ---------------------- Project.3 vm_entry ----------------------------------  */
+#ifdef VM
+	supplemental_page_table_kill(&t->spt);
+#endif
+	/* ---------------------- Project.3 vm_entry ----------------------------------  */
     // palloc_free_multiple(t->fd_table, 2);
     sema_up(&t->sema_exit);
     process_cleanup();

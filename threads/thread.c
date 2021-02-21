@@ -239,7 +239,7 @@ tid_t thread_create(const char *name, int priority,
 
     /*-------------------------- project.2-Process -----------------------------*/
     struct thread *par_t = thread_current();
-    t->is_load = false;
+    t->is_load = true;
     t->is_exit = false;
     sema_init(&t->sema_child_load, 0);
     sema_init(&t->sema_exit, 0);
@@ -676,11 +676,14 @@ schedule(void)
 		   currently used bye the stack.
 		   The real destruction logic will be called at the beginning of the
 		   schedule(). */
-		if (curr && curr->status == THREAD_DYING && curr != initial_thread)
-		{
-			ASSERT(curr != next);
-			list_push_back(&destruction_req, &curr->elem);
-		}
+
+        /*-------------------------- project.2-Process -----------------------------*/
+		// if (curr && curr->status == THREAD_DYING && curr != initial_thread)
+		// {
+		// 	ASSERT(curr != next);
+		// 	list_push_back(&destruction_req, &curr->elem);
+		// }
+        /*-------------------------- project.2-Process -----------------------------*/
 
 		/* Before switching the thread, we first save the information
 		 * of current running. */

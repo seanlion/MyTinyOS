@@ -25,6 +25,7 @@
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+#include "vm/vm.h"
 
 #include "userprog/exception.h"
 
@@ -706,6 +707,19 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+
+	struct load_aux *tmp_aux = (struct load_aux *)aux;
+
+	uint8_t *kva = page->frame->kva;
+
+	if (file_read_at(tmp_aux->file, kva, tmp_aux->read_bytes, tmp_aux->offset) != (int) tmp_aux->read_bytes) {
+		free(tmp_aux);
+		return false;
+	}
+	memset(kva + (tmp_aux->read_bytes), 0, tmp_aux->zero_bytes);
+	
+	free(tmp_aux);
+	return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -737,14 +751,21 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		void *aux = NULL;
+		struct load_aux *tmp_aux = malloc(sizeof(struct load_aux));
+		tmp_aux->file = file;
+		tmp_aux->offset = ofs;
+		tmp_aux->read_bytes = read_bytes;
+		tmp_aux->zero_bytes = zero_bytes;
+		tmp_aux->writable = writable;
+
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, aux))
+					writable, lazy_load_segment, tmp_aux))
 			return false;
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
+		ofs += PGSIZE;  //! read_byte? 비교 필요
 		upage += PGSIZE;
 	}
 	return true;
@@ -761,7 +782,14 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 
-	return success;
+	if (vm_alloc_page(VM_MARKER_0 | VM_ANON, stack_bottom, true)) {
+		if (vm_claim_page(stack_bottom)) {
+			// rsp에 page를 넣으려고 했으나, 컴파일러가 에러가 발생.
+			if_->rsp = stack_bottom + PGSIZE;
+			success = true;
+		}
+	}
+	return success;		
 }
 #endif /* VM */
 

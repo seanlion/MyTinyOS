@@ -27,6 +27,12 @@ enum vm_type {
 #include "vm/uninit.h"
 #include "vm/anon.h"
 #include "vm/file.h"
+#include "lib/kernel/hash.h"
+#include "threads/vaddr.h"
+#include "threads/mmu.h"
+// #include "threads/thread.h"
+#include <hash.h>
+#include <list.h>
 #ifdef EFILESYS
 #include "filesys/page_cache.h"
 #endif
@@ -57,6 +63,21 @@ struct page {
 		struct page_cache page_cache;
 #endif
 	};
+
+	/* 추가한 요소들 */
+	bool writable;				/* True일 경우 해당 주소에 write 가능, False일 경우 해당 주소에 write 불가능 */
+	bool is_loaded;				/* 물리메모리의 탑재 여부를 알려주는 플래그 */
+	size_t swap_slot;			/* 스왑 슬롯 */
+	struct list_elem mmap_elem;	/* mmap 리스트 Element */
+	struct hash_elem hash_elem;	/* 해시 테이블 Element */
+};
+
+struct load_aux {
+	struct file *file;			/* 가상주소와 맵핑된 파일 */
+	size_t offset;				/* 읽어야 할 파일 오프셋 */
+	size_t read_bytes;			/* 가상페이지에 쓰여져 있는 데이터 크기 */
+	size_t zero_bytes;			/* 0으로 채울 남은 페이지의 바이트 */
+	bool writable;				/* True일 경우 해당 주소에 write 가능, False일 경우 해당 주소에 write 불가능 */
 };
 
 /* The representation of "frame" */
@@ -85,6 +106,7 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
+	struct hash vm;
 };
 
 #include "threads/thread.h"
@@ -103,10 +125,15 @@ bool vm_try_handle_fault (struct intr_frame *f, void *addr, bool user,
 
 #define vm_alloc_page(type, upage, writable) \
 	vm_alloc_page_with_initializer ((type), (upage), (writable), NULL, NULL)
+
 bool vm_alloc_page_with_initializer (enum vm_type type, void *upage,
 		bool writable, vm_initializer *init, void *aux);
 void vm_dealloc_page (struct page *page);
 bool vm_claim_page (void *va);
 enum vm_type page_get_type (struct page *page);
+
+uint64_t page_hash (const struct hash_elem *p_, void *aux UNUSED);
+bool page_less (const struct hash_elem *a_,
+           const struct hash_elem *b_, void *aux UNUSED);
 
 #endif  /* VM_VM_H */

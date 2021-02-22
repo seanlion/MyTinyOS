@@ -25,6 +25,7 @@
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+// #include "vm/vm.h"
 
 #include "userprog/exception.h"
 
@@ -32,6 +33,32 @@
 #ifdef VM
 #include "vm/vm.h"
 #endif
+
+// #include "userprog/process.h"
+// #include <debug.h>
+// #include <inttypes.h>
+// #include <round.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <string.h>
+// #include "userprog/gdt.h"
+// #include "userprog/tss.h"
+// #include "filesys/directory.h"
+// #include "filesys/file.h"
+// #include "filesys/filesys.h"
+// #include "threads/flags.h"
+// #include "threads/init.h"
+// #include "threads/interrupt.h"
+// #include "threads/palloc.h"
+// #include "threads/thread.h"
+// #include "threads/mmu.h"
+// #include "threads/vaddr.h"
+// #include "intrinsic.h"
+// #include "userprog/syscall.h"
+// #ifdef VM
+// #include "vm/vm.h"
+// #endif
+
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
@@ -706,6 +733,60 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+
+	/* ---------------------- >> Project.3 Anony >> ---------------------------- */
+	struct load_info *info = (struct load_info *) page->uninit.aux;
+
+	struct file *file = info->file;
+	off_t ofs = info->ofs;
+	uint8_t *upage = info->upage;
+	uint32_t read_bytes = info->read_bytes;
+	uint32_t zero_bytes = info->zero_bytes;
+	bool writable = info->writable; 
+	
+    printf("---- debug// file : %p, ofs : %d, upage : %p, read_bytes : %lld, zero_bytes : %lld, writable : %d\n", file, ofs, upage, read_bytes, zero_bytes, writable);
+
+    free(aux);
+
+	file_seek (file, ofs);
+	size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+	size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+	uint8_t *kpage = page->frame->kva;
+
+	/* Load this page. */
+    int read_size = file_read (file, kpage, page_read_bytes);
+
+    printf("---- debug// read_size : %d\n", read_size);
+
+	if (read_size != (int) page_read_bytes) {
+        printf("---- debug// file : %p, kpage : %p, page_read_bytes : %lld\n", file, kpage, page_read_bytes);
+        printf("---- debug// file_read false\n");
+		// palloc_free_page (kpage);
+		// free(page->frame);
+		// page->frame = NULL;
+		return false;
+	}
+
+	printf("---- debug// before memset \n");
+	memset (kpage + page_read_bytes, 0, page_zero_bytes);
+	printf("---- debug// is_loaded \n ");
+    page->is_loaded = true;
+
+	/* Add the page to the process's address space. */
+	// if (!install_page (upage, kpage, writable)) {
+	// 	printf("fail\n");
+	// 	palloc_free_page (kpage);
+	// 	free(page->frame);
+	// 	page->frame = NULL;
+	// 	return false;
+	// }
+
+	printf("---- debug// return true \n ");
+    return true;
+	/* ---------------------- << Project.3 Anony << ---------------------------- */
+
+
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -722,6 +803,7 @@ lazy_load_segment (struct page *page, void *aux) {
  *
  * Return true if successful, false if a memory allocation error
  * or disk read error occurs. */
+ //로드 세그먼트
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes, bool writable) {
@@ -738,6 +820,20 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		void *aux = NULL;
+
+		/* ---------------------- >> Project.3 Anony >> ---------------------------- */
+		// load_info는 *aux에 담겨서 file의 lazy_load때 정보를 전달한다. (struct 구조체에 담겨있다.)
+		struct load_info *info = (struct load_info*) malloc(sizeof(struct load_info));
+		info->file = file;
+		info->ofs = ofs;
+		info->upage = upage;
+		info->read_bytes = read_bytes;
+		info->zero_bytes = zero_bytes;
+		info->writable = writable;
+		aux = info;
+		/* ---------------------- << Project.3 Anony << ---------------------------- */
+
+
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, aux))
 			return false;
@@ -756,11 +852,30 @@ setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
 
+
+	/* ---------------------- >> Project.3 Anony >> ---------------------------- */
+
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 
+    struct page *p = (struct page *)malloc(sizeof(struct page));
+    uninit_new(p, stack_bottom, NULL, VM_ANON, NULL, anon_initializer);
+    if(!spt_insert_page(&thread_current()->spt, p)){
+        return false;
+    }
+    if(!vm_claim_page(stack_bottom)){
+        return false;
+    }
+    success = true;
+
+	if(success){
+		if_->rsp = USER_STACK;
+	}
+	p->type |= VM_STACK;
+
+	/* ---------------------- << Project.3 Anony << ---------------------------- */
 	return success;
 }
 #endif /* VM */

@@ -1,0 +1,14 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (create-normal) begin
+  (create-normal) create quux.dat
+  (create-normal) end
+  create-normal: exit(0)
+Differences in `diff -u' format:
+- (create-normal) begin
+- (create-normal) create quux.dat
+- (create-normal) end
+- create-normal: exit(0)
++ create-normal: exit(-1)

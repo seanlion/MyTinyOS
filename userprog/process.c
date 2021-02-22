@@ -310,9 +310,10 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
+#ifdef VM // table_kill에서 hash_destroy를 쓰기 때문에 exec시 init을 다시 해줘야 함.
+	supplemental_page_table_init(&thread_current()->spt);
+#endif
 
-	/* And then load the binary */
-	// success = load (file_name, &_if);
     /*-------------------------- project.2-Parsing -----------------------------*/
 	char *token, *ptr, *last;
 	int token_count = 0;
@@ -326,6 +327,7 @@ process_exec (void *f_name) {
 		token_count ++;
 		arg_list[token_count] = token;
 	}
+	/* And then load the binary */
     success = load (tmp_save, &_if);
     if(!success) return-1;
     argument_stack(arg_list, token_count , &_if);
@@ -522,6 +524,8 @@ load (const char *file_name, struct intr_frame *if_) {
 						read_bytes = 0;
 						zero_bytes = ROUND_UP (page_offset + phdr.p_memsz, PGSIZE);
 					}
+					// printf("mem_page address in load: %p\n", mem_page);
+					// printf("thread in load: %p\n", t);
 					if (!load_segment (file, file_page, (void *) mem_page,
 								read_bytes, zero_bytes, writable))
 						goto done;
@@ -535,6 +539,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Set up stack. */
 	if (!setup_stack (if_))
 		goto done;
+
 
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
@@ -711,7 +716,9 @@ lazy_load_segment (struct page *page, void *aux) {
 	struct load_aux *tmp_aux = (struct load_aux *)aux;
 
 	uint8_t *kva = page->frame->kva;
-
+	if(page->frame == NULL){
+		return false;
+	}
 	if (file_read_at(tmp_aux->file, kva, tmp_aux->read_bytes, tmp_aux->offset) != (int) tmp_aux->read_bytes) {
 		free(tmp_aux);
 		return false;
@@ -757,10 +764,13 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		tmp_aux->read_bytes = read_bytes;
 		tmp_aux->zero_bytes = zero_bytes;
 		tmp_aux->writable = writable;
-
+		// printf("upage address in load_segment: %p\n", upage);
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, tmp_aux))
-			return false;
+			{
+				// free(tmp_aux);
+				return false;
+			}
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
@@ -785,7 +795,8 @@ setup_stack (struct intr_frame *if_) {
 	if (vm_alloc_page(VM_MARKER_0 | VM_ANON, stack_bottom, true)) {
 		if (vm_claim_page(stack_bottom)) {
 			// rsp에 page를 넣으려고 했으나, 컴파일러가 에러가 발생.
-			if_->rsp = stack_bottom + PGSIZE;
+			// if_->rsp = stack_bottom + PGSIZE;
+			if_->rsp = USER_STACK;
 			success = true;
 		}
 	}

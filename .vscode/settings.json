@@ -7,6 +7,15 @@
         "array": "c",
         "tuple": "c",
         "type_traits": "c",
-        "utility": "c"
+        "utility": "c",
+        "memory_resource": "cpp",
+        "atomic": "cpp",
+        "*.tcc": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "fstream": "cpp",
+        "streambuf": "cpp",
+        "uninit.h": "c",
+        "*.inc": "c"
     }
 }

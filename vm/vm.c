@@ -203,6 +203,7 @@ vm_get_frame (void) {
 }
 
 /* Growing the stack. */
+// 스택
 static void
 vm_stack_growth (void *addr UNUSED) {
 }
@@ -225,7 +226,7 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	// printf("---debug// try_handle // user : %d\n", user);
 	// printf("---debug// try_handle // write : %d\n", write);
 	// printf("---debug// try_handle // not_present : %d\n", not_present);
-	// struct page *cur_p = spt_find_page(&thread_current()->spt, addr);
+	struct page *cur_p = spt_find_page(&thread_current()->spt, addr);
 	// printf("---debug// try_handle // cur_p_va : %p\n", cur_p->va);
 	// printf("---debug// try_handle // cur_p_writable : %d\n", cur_p->writable);
 	// printf("---debug//\n");
@@ -233,6 +234,8 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 	// printf("---debug// try_handle // address : %p\n", addr);
+
+
 	if(addr == NULL || is_kernel_vaddr(addr)){
 		// printf("---debug// try_handle // kernel?\n");
         exit(-1);
@@ -240,9 +243,10 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 
 	if(!not_present){
 		// printf("---debug// try_handle // !not_present\n");
+		exit(-1);
 		return false;
     }
- 
+
     page = spt_find_page(spt, addr);
     
     if(page == NULL){
@@ -254,6 +258,7 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
     }
 
 	if(page->writable == false && write == true){
+		exit(-1);
 		return false;
 	}
 
@@ -273,6 +278,7 @@ vm_dealloc_page (struct page *page) {
 }
 
 /* Claim the page that allocate on VA. */
+//클레임페이지
 bool
 vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
@@ -280,8 +286,11 @@ vm_claim_page (void *va UNUSED) {
     /* ---------------------- >> Project.3 Anony >> ---------------------------- */
 	/* TODO: Fill this function */
 	// va에 해당하는 page가 있는지 찾는다.
+	// printf("---debug// claim_page // old_p->va : %p \n", va );
 	page = spt_find_page(&thread_current()->spt, va);
     if(page == NULL){
+		// printf("---debug// claim_page // false?\n");
+		// printf("---debug// claim_page // old_p->va : %p \n", va );
         return false;
     }
 	/* ---------------------- << Project.3 Anony << ---------------------------- */
@@ -289,14 +298,18 @@ vm_claim_page (void *va UNUSED) {
 	return vm_do_claim_page (page);
 }
 
+// 두클레임
 /* Claim the PAGE and set up the mmu. */
 static bool
 vm_do_claim_page (struct page *page) {
 	struct frame *frame = vm_get_frame ();
-
+	// printf("---debug// do_claim_page // page : %p \n", page );
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
+	// printf("---debug// do_claim_page // frame : %p \n", frame );
+	// printf("---debug// do_claim_page // frame->page : %p \n", frame->page );
+	// printf("---debug// do_claim_page // page->frame : %p \n", page->frame );
 
 	/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
 
@@ -310,6 +323,7 @@ vm_do_claim_page (struct page *page) {
         page->frame = NULL;
         palloc_free_page(frame->kva);
 		free(frame);
+		printf("---debug// do_claim_page // false? \n");
 		return false;
 	}
 	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
@@ -347,37 +361,52 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct page *new_p = (struct page*) malloc(sizeof(struct page));
 		memcpy (new_p, old_p, sizeof(struct page));
 
+
+
+		// printf("---debug//\n");
+		// printf("---debug// spt_copy // copy // old_p : %p \n", old_p );
+		// printf("---debug// spt_copy // copy // type : %d \n", old_p->type );
+		// printf("---debug//\n");
+
+
+
 		// 복사로받은 frame은 해제한다.
 		new_p->frame = NULL;
-
+		spt_insert_page(dst, new_p);
 		// switch로 타입을 나눈다. 
 		switch(VM_TYPE(new_p->type)){
 			// uninit인 경우, info도 할당한다.
 			// uninit이면서 info가 없는 경우가 있을까? 
 			case VM_UNINIT:
 			{
+				// printf("---debug//\n");
+				// printf("---debug// spt_copy // uninit : \n" );
+				// printf("---debug// spt_copy // uninit // old_p : %p \n", old_p );
+				// printf("---debug// spt_copy // uninit // old_p->va : %p \n", old_p->va );
+				// printf("---debug//\n");
 				struct load_info *n_info = (struct load_info*) malloc(sizeof(struct load_info));
 				memcpy(n_info, old_p->uninit.aux, sizeof(struct load_info));
 				new_p->uninit.aux = n_info;
 				break;
 			}
-
+			
 			// anon인 경우는 물리 메모리도 복사한다.
 			case VM_ANON:
 			{
-				printf("---debug//\n");
-				printf("---debug// spt_copy // anon_va : \n" );
-				printf("---debug// spt_copy // anon_va // old_p->va : %p \n", old_p->va );
-				printf("---debug//\n");
+				// printf("---debug//\n");
+				// printf("---debug// spt_copy // anon_va : \n" );
+				// printf("---debug// spt_copy // anon_va // old_p : %p \n", old_p );
+				// printf("---debug// spt_copy // anon_va // old_p->va : %p \n", old_p->va );
+				// printf("---debug//\n");
 				if (vm_claim_page(new_p->va))
 				{
 					memcpy(new_p->frame->kva, old_p->frame->kva, PGSIZE);
 				}
 				else 
 				{
-					printf("---debug//\n");
-					printf("---debug// spt_copy // anon_claim_error\n" );
-					printf("---debug//\n");
+					// printf("---debug//\n");
+					// printf("---debug// spt_copy // anon_claim_error\n" );
+					// printf("---debug//\n");
 					return false;
 				}
 				break;
@@ -391,9 +420,9 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 				}
 				else
 				{
-					printf("---debug//\n");
-					printf("---debug// spt_copy // file_claim_error\n" );
-					printf("---debug//\n");
+					// printf("---debug//\n");
+					// printf("---debug// spt_copy // file_claim_error\n" );
+					// printf("---debug//\n");
 					return false;
 				}
 				break;
@@ -401,8 +430,10 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 			default:
 				break;
 		}
-		spt_insert_page(dst, new_p);
+		// spt_insert_page(dst, new_p);
 	}
+
+	return true;
 
 
 	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
@@ -418,8 +449,8 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	 * TODO: writeback all the modified contents to the storage. */
 
 	struct hash *h = &spt->vm;
-	hash_clear(h, page_destroy);
-	free(h->buckets);
+	// hash_clear(h, page_destroy);
+	// free(h->buckets);
 
 	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
 }

@@ -296,10 +296,12 @@ __do_fork (void *aux) {
 	if (succ)
         /*-------------------------- project.2-Process  -----------------------------*/
         if_.R.rax = 0;
+		// printf("---debug// do_fork // before do_iret\n");
         /*-------------------------- project.2-Process  -----------------------------*/
 		do_iret (&if_);
 error:
     /*-------------------------- project.2-Process  -----------------------------*/
+	// printf("---debug// do_fork // ERROR\n");
     sema_up(&parent->sema_child_load);
     /*-------------------------- project.2-oom  -----------------------------*/
     current->fork_fail = true;

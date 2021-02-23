@@ -676,11 +676,11 @@ schedule(void)
 		   currently used bye the stack.
 		   The real destruction logic will be called at the beginning of the
 		   schedule(). */
-		if (curr && curr->status == THREAD_DYING && curr != initial_thread)
-		{
-			ASSERT(curr != next);
-			list_push_back(&destruction_req, &curr->elem);
-		}
+		// if (curr && curr->status == THREAD_DYING && curr != initial_thread)
+		// {
+		// 	ASSERT(curr != next);
+		// 	list_push_back(&destruction_req, &curr->elem);
+		// }
 
 		/* Before switching the thread, we first save the information
 		 * of current running. */

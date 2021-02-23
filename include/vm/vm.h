@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include "threads/palloc.h"
 
+
+
 enum vm_type {
 	/* page not initialized */
 	VM_UNINIT = 0,
@@ -39,9 +41,11 @@ enum vm_type {
 #include "threads/mmu.h"
 #include <hash.h>
 #include <list.h>
+// #include "userprog/syscall.h"
 
 // #include <hash.h>
 // #include "threads/mmu.h"
+
 /* ---------------------- << Project.3 << -----------------------  */
 
 #ifdef EFILESYS

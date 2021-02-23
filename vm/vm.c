@@ -4,6 +4,18 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 
+/* ---------------------- >> Project.3 Anony >> -----------------------  */
+struct load_info{
+    struct file *file;
+    off_t ofs;
+    uint8_t *upage;
+    uint32_t read_bytes;
+    uint32_t zero_bytes;
+    bool writable;
+};
+/* ---------------------- << Project.3 Anony << -----------------------  */
+
+
 /* ---------------------- Project.3 ----------------------------  */
 unsigned page_hash (const struct hash_elem *p_, void *aux UNUSED);
 bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
@@ -48,6 +60,7 @@ static struct frame *vm_evict_frame (void);
 /* Create the pending page object with initializer. If you want to create a
  * page, do not create it directly and make it through this function or
  * `vm_alloc_page`. */
+// 이니셜라이저
 bool
 vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		vm_initializer *init, void *aux) {
@@ -68,9 +81,6 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		 // 페이지를 선언하고 메모리를 할당받는다.
 		 struct page *p = (struct page*) malloc(sizeof(struct page));
 
-		p->type = VM_UNINIT; // page의 첫 타입은 uninit이 되어야한다.
-		p->is_loaded = 0; // 현재 할당받지 않은 상태이다.
-		p->frame = NULL; // claim_frame 전에는 page는 frame과 이어지지 않는다.
 
 		// type에 따라 initializer가 달라진다. 
 		switch(VM_TYPE(type)){
@@ -83,6 +93,11 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 			default:
 				break;
 		}
+		p->type = VM_UNINIT; // page의 첫 타입은 uninit이 되어야한다.
+		p->is_loaded = 0; // 현재 할당받지 않은 상태이다.
+		p->frame = NULL; // claim_frame 전에는 page는 frame과 이어지지 않는다.
+		p->writable = writable;
+		// printf("---debug// vm_alloc_page // writable : %d \n", p->writable);
 		/* TODO: Insert the page into the spt. */
 		// page를 spt(hash table)에 삽입한다. 
         return spt_insert_page(spt, p);
@@ -198,28 +213,54 @@ vm_handle_wp (struct page *page UNUSED) {
 }
 
 /* Return true on success */
+//핸들폴트
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
 	struct page *page = NULL;
-
+	// printf("---debug//\n");
+	// printf("---debug// try_handle // entry\n");
+	// printf("---debug// try_handle // address : %p\n", addr);
+	// printf("---debug// try_handle // user : %d\n", user);
+	// printf("---debug// try_handle // write : %d\n", write);
+	// printf("---debug// try_handle // not_present : %d\n", not_present);
+	// struct page *cur_p = spt_find_page(&thread_current()->spt, addr);
+	// printf("---debug// try_handle // cur_p_va : %p\n", cur_p->va);
+	// printf("---debug// try_handle // cur_p_writable : %d\n", cur_p->writable);
+	// printf("---debug//\n");
 	/* ---------------------- >> Project.3 Anony >> ---------------------------- */
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
+	// printf("---debug// try_handle // address : %p\n", addr);
+	if(addr == NULL || is_kernel_vaddr(addr)){
+		// printf("---debug// try_handle // kernel?\n");
+        exit(-1);
+	}
+
 	if(!not_present){
+		// printf("---debug// try_handle // !not_present\n");
 		return false;
     }
  
     page = spt_find_page(spt, addr);
     
     if(page == NULL){
+		// printf("---debug// try_handle // !page_null\n");
+
+		exit(-1);
+
         return false;
     }
+
+	if(page->writable == false && write == true){
+		return false;
+	}
+
 	/* ---------------------- << Project.3 Anony << ---------------------------- */
 
 
-
+	// printf("---debug// try_handle // before_return\n");
 	return vm_do_claim_page (page);
 }
 
@@ -271,14 +312,10 @@ vm_do_claim_page (struct page *page) {
 		free(frame);
 		return false;
 	}
-
-	// frame 할당에 성공했다면 swap_in 실행 
-	return swap_in (page, frame->kva);
-
-
-
 	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
 
+
+	// frame 할당에 성공했다면 swap_in 실행 
 	return swap_in (page, frame->kva);
 }
 
@@ -298,6 +335,77 @@ supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct supplemental_page_table *src UNUSED) {
+	/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
+	struct hash *old_h = &src->vm;
+	struct hash_iterator i;
+
+	hash_first (&i, old_h);
+	while (hash_next (&i))
+	{
+		// page를 복사한다.
+		struct page *old_p = hash_entry (hash_cur (&i), struct page, hash_elem);
+		struct page *new_p = (struct page*) malloc(sizeof(struct page));
+		memcpy (new_p, old_p, sizeof(struct page));
+
+		// 복사로받은 frame은 해제한다.
+		new_p->frame = NULL;
+
+		// switch로 타입을 나눈다. 
+		switch(VM_TYPE(new_p->type)){
+			// uninit인 경우, info도 할당한다.
+			// uninit이면서 info가 없는 경우가 있을까? 
+			case VM_UNINIT:
+			{
+				struct load_info *n_info = (struct load_info*) malloc(sizeof(struct load_info));
+				memcpy(n_info, old_p->uninit.aux, sizeof(struct load_info));
+				new_p->uninit.aux = n_info;
+				break;
+			}
+
+			// anon인 경우는 물리 메모리도 복사한다.
+			case VM_ANON:
+			{
+				printf("---debug//\n");
+				printf("---debug// spt_copy // anon_va : \n" );
+				printf("---debug// spt_copy // anon_va // old_p->va : %p \n", old_p->va );
+				printf("---debug//\n");
+				if (vm_claim_page(new_p->va))
+				{
+					memcpy(new_p->frame->kva, old_p->frame->kva, PGSIZE);
+				}
+				else 
+				{
+					printf("---debug//\n");
+					printf("---debug// spt_copy // anon_claim_error\n" );
+					printf("---debug//\n");
+					return false;
+				}
+				break;
+			}
+			// file인 경우는 물리 메모리도 복사한다. 
+			case VM_FILE:
+			{
+				if (vm_claim_page(new_p->va))
+				{
+					memcpy(new_p->frame->kva, old_p->frame->kva, PGSIZE);
+				}
+				else
+				{
+					printf("---debug//\n");
+					printf("---debug// spt_copy // file_claim_error\n" );
+					printf("---debug//\n");
+					return false;
+				}
+				break;
+			}
+			default:
+				break;
+		}
+		spt_insert_page(dst, new_p);
+	}
+
+
+	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -308,9 +416,10 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	
-	// 
 
+	struct hash *h = &spt->vm;
+	hash_clear(h, page_destroy);
+	free(h->buckets);
 
 	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
 }
@@ -367,11 +476,8 @@ struct page *page_lookup (const void *address) {
 // 해당 hash에 해당하는 page와 frame의 메모리를 반환한다. 
 void page_destroy (const struct hash_elem *hash_elem, void *aux){
     const struct page *p = hash_entry (hash_elem, struct page, hash_elem);
-    if(p->frame != NULL){
-        //write back
-        free(p->frame);
-    }
-    free(p);
+    destroy(p);
+	free(p);
 }
 /* ---------------------- << Project.3 MEM Management << ---------------------------- */
 

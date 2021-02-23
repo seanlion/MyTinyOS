@@ -4,8 +4,8 @@ Kernel command line: -q -f put open-normal put sample.txt run open-normal
 Pintos booting with: 
 	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
 	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
-Calibrating timer...  130,867,200 loops/s.
-hd0:0: detected 305 sector (152 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+Calibrating timer...  157,081,600 loops/s.
+hd0:0: detected 313 sector (156 kB) disk, model "QEMU HARDDISK", serial "QM00001"
 hd0:1: detected 20,160 sector (9 MB) disk, model "QEMU HARDDISK", serial "QM00002"
 hd1:0: detected 105 sector (52 kB) disk, model "QEMU HARDDISK", serial "QM00003"
 hd1:1: detected 8,064 sector (3 MB) disk, model "QEMU HARDDISK", serial "QM00004"
@@ -14,15 +14,17 @@ Boot complete.
 Putting 'open-normal' into the file system...
 Putting 'sample.txt' into the file system...
 Executing 'open-normal':
-open-normal: exit(-1)
+(open-normal) begin
+(open-normal) end
+open-normal: exit(0)
 Execution of 'open-normal' complete.
-Timer: 68 ticks
-Thread: 30 idle ticks, 38 kernel ticks, 1 user ticks
+Timer: 66 ticks
+Thread: 30 idle ticks, 34 kernel ticks, 3 user ticks
 hd0:0: 0 reads, 0 writes
-hd0:1: 68 reads, 248 writes
+hd0:1: 111 reads, 248 writes
 hd1:0: 105 reads, 0 writes
 hd1:1: 0 reads, 0 writes
-Console: 986 characters output
+Console: 1024 characters output
 Keyboard: 0 keys pressed
 Exception: 0 page faults
 Powering off...

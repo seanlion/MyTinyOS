@@ -14,7 +14,6 @@ void syscall_init (void);
 
 
 /*-------------------------- project.2-System call -----------------------------*/
-// void get_argument(void *, uint64_t *, int);
 void halt (void);
 void exit (int );
 int open (const char *);

@@ -4,8 +4,8 @@ Kernel command line: -q -f put args-none run args-none
 Pintos booting with: 
 	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
 	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
-Calibrating timer...  117,760,000 loops/s.
-hd0:0: detected 305 sector (152 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+Calibrating timer...  130,867,200 loops/s.
+hd0:0: detected 313 sector (156 kB) disk, model "QEMU HARDDISK", serial "QM00001"
 hd0:1: detected 20,160 sector (9 MB) disk, model "QEMU HARDDISK", serial "QM00002"
 hd1:0: detected 102 sector (51 kB) disk, model "QEMU HARDDISK", serial "QM00003"
 hd1:1: detected 8,064 sector (3 MB) disk, model "QEMU HARDDISK", serial "QM00004"
@@ -13,24 +13,20 @@ Formatting file system...done.
 Boot complete.
 Putting 'args-none' into the file system...
 Executing 'args-none':
-Page fault at 0x23f: not present error reading page in user context.
-args-none: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at rip=400c7f
- cr2=000000000000023f error=               4
-rax 000000000000023f rbx 0000000000000000 rcx 0000000000000000 rdx 0000000000000000
-rsp 000000004747ffd8 rbp 0000000000000000 rsi 000000004747ffe0 rdi 0000000000000001
-rip 0000000000400c7f r8 0000000000000000  r9 0000000000000000 r10 0000000000000000
-r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
-r15 0000000000000000 rflags 00000202
-es: 001b ds: 001b cs: 0023 ss: 001b
+(args) begin
+(args) argc = 1
+(args) argv[0] = 'args-none'
+(args) argv[1] = null
+(args) end
+args-none: exit(0)
 Execution of 'args-none' complete.
-Timer: 74 ticks
-Thread: 30 idle ticks, 39 kernel ticks, 6 user ticks
+Timer: 66 ticks
+Thread: 30 idle ticks, 33 kernel ticks, 3 user ticks
 hd0:0: 0 reads, 0 writes
-hd0:1: 41 reads, 232 writes
+hd0:1: 80 reads, 232 writes
 hd1:0: 102 reads, 0 writes
 hd1:1: 0 reads, 0 writes
-Console: 1539 characters output
+Console: 1004 characters output
 Keyboard: 0 keys pressed
-Exception: 1 page faults
+Exception: 0 page faults
 Powering off...

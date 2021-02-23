@@ -336,6 +336,11 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
+	
+	supplemental_page_table_init(&thread_current()->spt);
+	/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
+	
+	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
 
 	/* And then load the binary */
 	// success = load (file_name, &_if);
@@ -418,6 +423,9 @@ process_wait (tid_t child_tid UNUSED) {
 /* Free the current process's resources. */
 static void
 process_cleanup (void) {
+	// printf("---debug//\n");
+	// printf("---debug// process_cleanup // entry\n");
+	// printf("---debug//\n");
 	struct thread *curr = thread_current ();
 
 #ifdef VM
@@ -459,6 +467,7 @@ process_activate (struct thread *next) {
  * Stores the executable's entry point into *RIP
  * and its initial stack pointer into *RSP.
  * Returns true if successful, false otherwise. */
+ //로드
 static bool
 load (const char *file_name, struct intr_frame *if_) {
 	struct thread *t = thread_current ();
@@ -728,6 +737,7 @@ install_page (void *upage, void *kpage, bool writable) {
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
 
+//레이지
 static bool
 lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
@@ -735,6 +745,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: VA is available when calling this function. */
 
 	/* ---------------------- >> Project.3 Anony >> ---------------------------- */
+
 	struct load_info *info = (struct load_info *) page->uninit.aux;
 
 	struct file *file = info->file;
@@ -744,33 +755,42 @@ lazy_load_segment (struct page *page, void *aux) {
 	uint32_t zero_bytes = info->zero_bytes;
 	bool writable = info->writable; 
 	
-    printf("---- debug// file : %p, ofs : %d, upage : %p, read_bytes : %lld, zero_bytes : %lld, writable : %d\n", file, ofs, upage, read_bytes, zero_bytes, writable);
+	// printf("--- debug// \n");
+    // printf("--- debug// lazy_load // file : %p, \n", file);
+	// printf("--- debug// lazy_load // ofs : %d\n", ofs);
+	// printf("--- debug// lazy_load // upage : %p\n",upage);
+	// printf("--- debug// lazy_load // read_bytes : %lld\n", read_bytes);
+	// printf("--- debug// lazy_load // zero_bytes : %lld\n", zero_bytes);
+	// printf("--- debug// lazy_load // writable : %d\n", writable);
+	// printf("--- debug// \n");
+
+
 
     free(aux);
 
 	file_seek (file, ofs);
-	size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
-	size_t page_zero_bytes = PGSIZE - page_read_bytes;
+	// size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+	// size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 	uint8_t *kpage = page->frame->kva;
 
 	/* Load this page. */
-    int read_size = file_read (file, kpage, page_read_bytes);
+    int read_size = file_read (file, kpage, read_bytes);
 
-    printf("---- debug// read_size : %d\n", read_size);
+    // printf("---debug// read_size : %d\n", read_size);
 
-	if (read_size != (int) page_read_bytes) {
-        printf("---- debug// file : %p, kpage : %p, page_read_bytes : %lld\n", file, kpage, page_read_bytes);
-        printf("---- debug// file_read false\n");
+	if (read_size != (int) read_bytes) {
+        // printf("---debug// file : %p, kpage : %p, page_read_bytes : %lld\n", file, kpage, read_bytes);
+        // printf("---debug// file_read false\n");
 		// palloc_free_page (kpage);
 		// free(page->frame);
 		// page->frame = NULL;
 		return false;
 	}
 
-	printf("---- debug// before memset \n");
-	memset (kpage + page_read_bytes, 0, page_zero_bytes);
-	printf("---- debug// is_loaded \n ");
+	// printf("---debug// before memset \n");
+	memset (kpage + read_bytes, 0, zero_bytes);
+	// printf("---debug// is_loaded \n ");
     page->is_loaded = true;
 
 	/* Add the page to the process's address space. */
@@ -782,7 +802,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	// 	return false;
 	// }
 
-	printf("---- debug// return true \n ");
+	// printf("---debug// return true \n ");
     return true;
 	/* ---------------------- << Project.3 Anony << ---------------------------- */
 
@@ -817,7 +837,14 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		 * and zero the final PAGE_ZERO_BYTES bytes. */
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
-
+		// printf("---debug//\n");
+		// printf("---debug// load_segment // page_read_byte : %d \n", page_read_bytes);
+		// printf("---debug// load_segment // page_zerobyte : %d \n", page_zero_bytes);
+		// printf("---debug// load_segment // offset : %d \n", ofs);
+		// printf("---debug// load_segment // upage : %p \n", upage);
+		// printf("---debug// load_segment // writable : %d \n", writable);
+		// printf("---debug//\n");
+		// printf("---debug// load_segment // inode : %p \n", file->inode);
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		void *aux = NULL;
 
@@ -827,8 +854,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		info->file = file;
 		info->ofs = ofs;
 		info->upage = upage;
-		info->read_bytes = read_bytes;
-		info->zero_bytes = zero_bytes;
+		info->read_bytes = page_read_bytes;
+		info->zero_bytes = page_zero_bytes;
 		info->writable = writable;
 		aux = info;
 		/* ---------------------- << Project.3 Anony << ---------------------------- */
@@ -842,11 +869,19 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		upage += PGSIZE;
+		/* ---------------------- >> Project.3 Anony >> ---------------------------- */
+        ofs += PGSIZE;
+		/* ---------------------- << Project.3 Anony << ---------------------------- */
+
 	}
+
+
+
 	return true;
 }
 
 /* Create a PAGE of stack at the USER_STACK. Return true on success. */
+//셋업스택
 static bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
@@ -859,25 +894,42 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
-
+	// printf("--- debug//  \n");
+	// printf("--- debug// setup_stack \n");
+	
     struct page *p = (struct page *)malloc(sizeof(struct page));
+	// printf("--- debug// setup_stack // p : %p, \n", p);
     uninit_new(p, stack_bottom, NULL, VM_ANON, NULL, anon_initializer);
+	// printf("--- debug// setup_stack // after_uninit \n");
+	p->writable = true;
     if(!spt_insert_page(&thread_current()->spt, p)){
+		// printf("--- debug// setup_stack // not_insert \n");
         return false;
     }
+	// printf("--- debug// setup_stack // p->writable1 : %d \n", p->writable);
     if(!vm_claim_page(stack_bottom)){
+		// printf("--- debug// setup_stack // not_claim \n");
         return false;
     }
+	// printf("--- debug// setup_stack // p->writable1 : %d \n", p->writable);
+	// printf("--- debug// setup_stack // frame->kva : %p \n", p->frame->kva);
+	// printf("--- debug// setup_stack // frame->page : %p \n", p->frame->page);
+	// printf("--- debug// setup_stack // p->va : %p \n", p->va);
+	
+
     success = true;
+	// printf("--- debug// setup_stack // suc_true \n");
 
 	if(success){
 		if_->rsp = USER_STACK;
 	}
-	p->type |= VM_STACK;
-
+	p->type = VM_ANON | VM_STACK;
+	// printf("--- debug//  \n");
 	/* ---------------------- << Project.3 Anony << ---------------------------- */
 	return success;
 }
+
+
 #endif /* VM */
 
 
@@ -954,7 +1006,7 @@ struct thread *get_child_process(int pid) {
 void remove_child_process(struct thread *cp) {
     struct list_elem* remove_elem = &cp->child_elem;
     list_remove(remove_elem);
-	list_remove(&cp->elem);
+	// list_remove(&cp->elem);
     palloc_free_page(cp);
 }
 
@@ -1017,6 +1069,7 @@ void process_close_file(int fd) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 void process_exit(void) {
+	// printf("---debug// process_exit // entry\n");
     struct thread *t = thread_current();
     t->is_exit = true;
     for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)

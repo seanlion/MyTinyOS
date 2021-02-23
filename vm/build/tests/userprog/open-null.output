@@ -1,0 +1,66 @@
+Kernel command line: -q -f put open-null run open-null
+0 ~ 9fc00 1
+100000 ~ 13e0000 1
+Pintos booting with: 
+	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
+	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
+Calibrating timer...  157,081,600 loops/s.
+hd0:0: detected 313 sector (156 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+hd0:1: detected 20,160 sector (9 MB) disk, model "QEMU HARDDISK", serial "QM00002"
+hd1:0: detected 102 sector (51 kB) disk, model "QEMU HARDDISK", serial "QM00003"
+hd1:1: detected 8,064 sector (3 MB) disk, model "QEMU HARDDISK", serial "QM00004"
+Formatting file system...done.
+Boot complete.
+Putting 'open-null' into the file system...
+Executing 'open-null':
+(open-null) begin
+(open-null) end
+open-null: exit(0)
+Execution of 'open-null' complete.
+Timer: 65 ticks
+Thread: 30 idle ticks, 31 kernel ticks, 4 user ticks
+hd0:0: 0 reads, 0 writes
+hd0:1: 80 reads, 232 writes
+hd1:0: 102 reads, 0 writes
+hd1:1: 0 reads, 0 writes
+Console: 947 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Interrupt 0x0d (#GP General Protection Exception) at rip=8004216cff
+ cr2=0000000000403713 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000008004000020 rdx 0000008004000020
+rsp 0000008004000c70 rbp 0000008004000c80 rsi 0000008004000020 rdi 000000800423f020
+rip 0000008004216cff r8 0000008004000ec8  r9 0000008004219bc4 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200002
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Kernel PANIC at ../../userprog/exception.c:97 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0x800421674b 0x800421b58e 0x8004208d84 0x80042091a2 0x8004217b18 0x80042072f0 0x8004208edb 0x80042091a2 0x8004207ef7 0x8004210f3a 0x8004219ca2 0x8004219c01 0x8004213c97 0x8004219ab0 0x8004213c4e 0x800421b49a 0x80042069ac 0x8004206932 0x80042061a3.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
+Kernel PANIC recursion at ../../filesys/inode.c:304 in inode_allow_write().
+Interrupt 0x0d (#GP General Protection Exception) at rip=8004216cff
+ cr2=0000000000403713 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 0000000000000010 rdx 000000800423b028
+rsp 00000080040008e0 rbp 00000080040008f0 rsi 000000800423b028 rdi 000000800423b028
+rip 0000008004216cff r8 000000800400093c  r9 0000008004219bc4 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200006
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Interrupt 0x0d (#GP General Protection Exception) at rip=800421e7a2
+ cr2=0000000000403713 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 00000080042244e0 rdx 000000000000001c
+rsp 00000080040006b0 rbp 00000080040006c0 rsi 000000000000000a rdi cccccccccccccccc
+rip 000000800421e7a2 r8 0000008004216670  r9 0000008004219bc4 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200002
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Interrupt 0x0d (#GP General Protection Exception) at rip=800421e288
+ cr2=0000000000403713 error=               0
+rax cccccccccccccccc rbx 0000000000204400 rcx 00000080042244e0 rdx 0000000000000025
+rsp 00000080040004a0 rbp 00000080040004b0 rsi 000000000000000a rdi cccccccccccccccc
+rip 000000800421e288 r8 0000008004216670  r9 0000008004219bc4 r10 0000000000000000
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200086
+es: 0010 ds: 0010 cs: 0008 ss: 0010

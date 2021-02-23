@@ -123,6 +123,9 @@ page_fault (struct intr_frame *f) {
 	bool write;        /* True: access was write, false: access was read. */
 	bool user;         /* True: access by user, false: access by kernel. */
 	void *fault_addr;  /* Fault address. */
+	// printf("---debug//\n" );
+	// printf("---debug// page_fault // rsp : %p \n", f->rsp );
+	// printf("---debug//\n" );
 
 	/* Obtain faulting address, the virtual address that was
 	   accessed to cause the fault.  It may point to code or to

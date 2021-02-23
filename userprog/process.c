@@ -898,7 +898,7 @@ setup_stack (struct intr_frame *if_) {
 	/* TODO: Your code goes here */
 	// printf("--- debug//  \n");
 	// printf("--- debug// setup_stack \n");
-	
+	// printf("--- debug// setup_stack // stack_bottom : %p, \n", stack_bottom);
     struct page *p = (struct page *)malloc(sizeof(struct page));
 	// printf("--- debug// setup_stack // p : %p, \n", p);
     uninit_new(p, stack_bottom, NULL, VM_ANON, NULL, anon_initializer);
@@ -925,6 +925,8 @@ setup_stack (struct intr_frame *if_) {
 	if(success){
 		if_->rsp = USER_STACK;
 	}
+
+	thread_current()->stack_bottom = stack_bottom;
 	p->type = VM_ANON | VM_STACK;
 	// printf("--- debug//  \n");
 	/* ---------------------- << Project.3 Anony << ---------------------------- */

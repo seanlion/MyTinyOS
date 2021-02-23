@@ -83,6 +83,13 @@ void
 syscall_handler (struct intr_frame *f UNUSED) {
 	
     uint64_t number = f->R.rax;
+    /* ---------------------- >> Project.3 Stack >> ---------------------------- */
+    // thread_current()->t_rsp = f->rsp;
+    // printf("---debug//\n" );
+    
+	// printf("---debug// syscall // rsp : %p \n", f->rsp );
+	// printf("---debug//\n" );
+    /* ---------------------- << Project.3 Stack << ---------------------------- */
 	switch (number) {
 		case SYS_HALT:
             // printf("halt\n");

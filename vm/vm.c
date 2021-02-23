@@ -23,6 +23,9 @@ struct page *page_lookup (const void *address);
 void page_destroy (const struct hash_elem *hash_elem, void *aux);
 /* ---------------------- Project.3 ----------------------------  */
 
+/* ---------------------- >> Project.3 Stack >> ----------------------- */
+#define STACK_LIMIT 0x47380000
+/* ---------------------- << Project.3 Stack << ----------------------- */
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -206,6 +209,35 @@ vm_get_frame (void) {
 // 스택
 static void
 vm_stack_growth (void *addr UNUSED) {
+	struct thread *cur_t = thread_current();
+	uint64_t cur_stack_bottom = cur_t->stack_bottom;
+	uint64_t new_stack_bottom;
+
+
+	while (cur_stack_bottom > addr)
+	{
+		new_stack_bottom = cur_stack_bottom - PGSIZE;
+		struct page *p = (struct page *)malloc(sizeof(struct page));
+
+		uninit_new(p, new_stack_bottom, NULL, VM_ANON, NULL, anon_initializer);
+		p->writable = true;
+
+		if(!spt_insert_page(&cur_t->spt, p)){
+			// printf("---debug//  \n");
+			// printf("---debug// stack_growth // insert_page_ERROR\n");
+			// printf("---debug//  \n");
+		}
+		// printf("--- debug// setup_stack // p->writable1 : %d \n", p->writable);
+		if(!vm_claim_page(new_stack_bottom)){
+			// printf("---debug//  \n");
+			// printf("---debug// stack_growth // claim_page_ERROR\n");
+			// printf("---debug//  \n");
+		}
+
+		p->type = VM_ANON | VM_STACK;
+		cur_stack_bottom = new_stack_bottom;
+	}
+	cur_t->stack_bottom = cur_stack_bottom;
 }
 
 /* Handle the fault on write_protected page */
@@ -217,16 +249,22 @@ vm_handle_wp (struct page *page UNUSED) {
 //핸들폴트
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
-		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
-	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
+	bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
+	struct thread *cur_t = thread_current ();
+	struct supplemental_page_table *spt UNUSED = &cur_t->spt;
 	struct page *page = NULL;
+	uint64_t cur_rsp = f->rsp;
+
 	// printf("---debug//\n");
-	// printf("---debug// try_handle // entry\n");
+	// printf("---debug// try_handle // addr : %p\n", addr);
+	// printf("---debug// try_handle // f-rsp : %p\n", f->rsp);
+	// printf("---debug//\n");
+
+	// printf("---debug//\n");
 	// printf("---debug// try_handle // address : %p\n", addr);
 	// printf("---debug// try_handle // user : %d\n", user);
 	// printf("---debug// try_handle // write : %d\n", write);
 	// printf("---debug// try_handle // not_present : %d\n", not_present);
-	struct page *cur_p = spt_find_page(&thread_current()->spt, addr);
 	// printf("---debug// try_handle // cur_p_va : %p\n", cur_p->va);
 	// printf("---debug// try_handle // cur_p_writable : %d\n", cur_p->writable);
 	// printf("---debug//\n");
@@ -235,6 +273,15 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Your code goes here */
 	// printf("---debug// try_handle // address : %p\n", addr);
 
+	// rsp에 대한 검사
+	if (STACK_LIMIT <= addr && addr < cur_rsp && addr + 8 == cur_rsp) {
+		// printf("---debug//\n");
+		// printf("---debug// before_stack \n");
+		vm_stack_growth(addr);
+		// printf("---debug// after_stack \n");
+		// printf("---debug//\n");
+		return true;
+	}
 
 	if(addr == NULL || is_kernel_vaddr(addr)){
 		// printf("---debug// try_handle // kernel?\n");
@@ -248,7 +295,6 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
     }
 
     page = spt_find_page(spt, addr);
-    
     if(page == NULL){
 		// printf("---debug// try_handle // !page_null\n");
 
@@ -289,7 +335,7 @@ vm_claim_page (void *va UNUSED) {
 	// printf("---debug// claim_page // old_p->va : %p \n", va );
 	page = spt_find_page(&thread_current()->spt, va);
     if(page == NULL){
-		// printf("---debug// claim_page // false?\n");
+		printf("---debug// claim_page // false?\n");
 		// printf("---debug// claim_page // old_p->va : %p \n", va );
         return false;
     }
@@ -307,10 +353,12 @@ vm_do_claim_page (struct page *page) {
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
+	// printf("---debug//  \n");
 	// printf("---debug// do_claim_page // frame : %p \n", frame );
+	// printf("---debug// do_claim_page // va : %p \n", page->va );
 	// printf("---debug// do_claim_page // frame->page : %p \n", frame->page );
 	// printf("---debug// do_claim_page // page->frame : %p \n", page->frame );
-
+	// printf("---debug//  \n");
 	/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
@@ -319,7 +367,7 @@ vm_do_claim_page (struct page *page) {
 	// page를 plm4 리스트에 넣는다. 
 	if(!(pml4_get_page(thread_current()->pml4, page->va) == NULL && pml4_set_page (thread_current()->pml4, page->va, frame->kva, page->writable)))
 	{
-        printf("install_page false\n");
+        // printf("install_page false\n");
         page->frame = NULL;
         palloc_free_page(frame->kva);
 		free(frame);
@@ -328,7 +376,7 @@ vm_do_claim_page (struct page *page) {
 	}
 	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
 
-
+	// printf("---debug// do_claim_page // get? \n");
 	// frame 할당에 성공했다면 swap_in 실행 
 	return swap_in (page, frame->kva);
 }

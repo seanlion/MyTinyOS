@@ -267,7 +267,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 				if (result){
 					struct page *child_page = spt_find_page(&thread_current()->spt, parent_page->va );
 					if (vm_do_claim_page(child_page) == 0){
-						return false;
+						return false ;
 						}
 					memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
 					}

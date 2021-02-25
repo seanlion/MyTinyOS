@@ -59,6 +59,7 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 			uninit_new(new_page, upage, init, type, aux, &anon_initializer);
 		else if (VM_TYPE(type) == VM_FILE)
 			uninit_new(new_page, upage, init, type, aux, &file_backed_initializer);
+		
 		new_page->writable = writable;
 
 		/* TODO: Insert the page into the spt. */
@@ -82,15 +83,6 @@ spt_find_page (struct supplemental_page_table *spt, void *va) {
 	struct hash_elem *e;
 
 	// /* TODO: Fill this function. */
-	// struct hash_iterator i;
-	// hash_first(&i, &spt->vm);
-	// while (hash_next(&i)){
-	// 	struct page *cur_page = hash_entry(hash_cur(&i),struct page, hash_elem);
-	// 	if (cur_page->va == va){
-	// 		return cur_page;
-	// 	}
-	// }
-	// return NULL;
 	page.va = pg_round_down(va);
 	e = hash_find(&spt->vm, &page.hash_elem);
 	return e != NULL ? hash_entry(e, struct page, hash_elem) : NULL;
@@ -118,7 +110,9 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 		// printf("spt_remove_page 1111111111 :: pg_ofs(page->va) :: %p\n", pg_ofs(page->va));
 		
 		vm_dealloc_page (page);
+		return true;
 	}
+	return false;
 }
 
 /* Get the struct frame, that will be evicted. */

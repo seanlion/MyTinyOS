@@ -250,7 +250,7 @@ pml4_set_page (uint64_t *pml4, void *upage, void *kpage, bool rw) {
 void
 pml4_clear_page (uint64_t *pml4, void *upage) {
 	uint64_t *pte;
-	printf("pml4_clear_page :: pg_ofs (upage) :: %p\n", pg_ofs (upage));
+	// printf("pml4_clear_page :: pg_ofs (upage) :: %p\n", pg_ofs (upage));
 	// printf("spt_remove_page :: pg_ofs (upage) == 0 :: %p\n", pg_ofs(page->va));
 
 	ASSERT (pg_ofs (upage) == 0);

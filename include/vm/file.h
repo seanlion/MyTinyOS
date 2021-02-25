@@ -7,7 +7,6 @@ struct page;
 enum vm_type;
 
 struct file_page {
-	int mapping_id;
 	size_t length;
 	struct file* file;
 	size_t offset;				/* 읽어야 할 파일 오프셋 */

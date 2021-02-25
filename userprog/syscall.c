@@ -405,9 +405,9 @@ void *mmap (void *addr, size_t length, int writable, int fd, off_t offset){
 void munmap (void *addr){
     if (addr == NULL || addr == 0)
         return NULL;
-    lock_acquire(&filesys_lock);
+    // lock_acquire(&filesys_lock);
     do_munmap(addr);
-    lock_release(&filesys_lock);
+    // lock_release(&filesys_lock);
 }
 
 /*-------------------------- project.3-map,unmap -----------------------------*/

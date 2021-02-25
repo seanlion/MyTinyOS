@@ -111,8 +111,14 @@ spt_insert_page (struct supplemental_page_table *spt,
 
 void
 spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
-	vm_dealloc_page (page);
-	return true;
+	if (hash_delete(&spt->vm, &page->hash_elem)) {
+		// printf("spt_remove_page :: pg_ofs(page->va) :: %p\n", pg_ofs(page->va));
+
+		pml4_clear_page(thread_current()->pml4, page->va);
+		// printf("spt_remove_page 1111111111 :: pg_ofs(page->va) :: %p\n", pg_ofs(page->va));
+		
+		vm_dealloc_page (page);
+	}
 }
 
 /* Get the struct frame, that will be evicted. */
@@ -186,6 +192,7 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
     if (addr == 0) {
         exit(-1);
     }
+
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 	uintptr_t t_rsp = NULL;
@@ -210,7 +217,13 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 			return false;
 		}
 	}
-	else{
+	else {
+		if(!not_present&&is_user_vaddr(addr))
+			exit(-1);
+
+		if((!(page->writable)) && write)
+			exit(-1);
+
 		return vm_do_claim_page (page);
 	}
 
@@ -261,6 +274,7 @@ vm_do_claim_page (struct page *page) {
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 	hash_init(&spt->vm, page_hash, page_less, NULL);
+	lock_init(&spt_lock);
 }
 
 /* Copy supplemental page table from src to dst */

@@ -7,7 +7,7 @@ struct page;
 enum vm_type;
 
 struct file_page {
-	// int mapping_id;
+	int mapping_id;
 	size_t length;
 	struct file* file;
 	size_t offset;				/* 읽어야 할 파일 오프셋 */
@@ -21,6 +21,6 @@ bool file_backed_initializer (struct page *page, enum vm_type type, void *kva);
 void *do_mmap(void *addr, size_t length, int writable,
 		struct file *file, off_t offset);
 void do_munmap (void *va);
-static bool
-lazy_map (struct page *page, void *aux);
+static bool lazy_map (struct page *page, void *aux);
+
 #endif

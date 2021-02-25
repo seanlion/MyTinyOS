@@ -77,7 +77,7 @@ tests/vm/child-inherit_SRC = tests/vm/child-inherit.c tests/lib.c tests/main.c
 tests/vm/swap-file_SRC = tests/vm/swap-file.c tests/lib.c tests/main.c
 tests/vm/swap-iter_SRC = tests/vm/swap-iter.c tests/lib.c tests/main.c
 tests/vm/swap-anon_SRC = tests/vm/swap-anon.c tests/lib.c tests/main.c
-# tests/vm/swap-fork_SRC = tests/vm/swap-fork.c tests/lib.c tests/main.c
+tests/vm/swap-fork_SRC = tests/vm/swap-fork.c tests/lib.c tests/main.c
 tests/vm/lazy-file_SRC = tests/vm/lazy-file.c tests/lib.c tests/main.c
 tests/vm/lazy-anon_SRC = tests/vm/lazy-anon.c tests/lib.c tests/main.c
 

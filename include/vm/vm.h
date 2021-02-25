@@ -52,6 +52,11 @@ struct page {
 	struct frame *frame;   /* Back reference for frame */
 
 	/* Your implementation */
+	int mapping_id;
+	bool writable;				/* True일 경우 해당 주소에 write 가능, False일 경우 해당 주소에 write 불가능 */
+	bool is_loaded;				/* 물리메모리의 탑재 여부를 알려주는 플래그 */
+	size_t swap_slot;			/* 스왑 슬롯 */
+	struct hash_elem hash_elem;	/* 해시 테이블 Element */
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
@@ -63,13 +68,6 @@ struct page {
 		struct page_cache page_cache;
 #endif
 	};
-
-	/* 추가한 요소들 */
-	bool writable;				/* True일 경우 해당 주소에 write 가능, False일 경우 해당 주소에 write 불가능 */
-	bool is_loaded;				/* 물리메모리의 탑재 여부를 알려주는 플래그 */
-	size_t swap_slot;			/* 스왑 슬롯 */
-	struct list_elem mmap_elem;	/* mmap_file의 page_list에서 쓰기 위한 리스트 Element */
-	struct hash_elem hash_elem;	/* 해시 테이블 Element */
 };
 
 struct load_aux {

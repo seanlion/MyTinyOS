@@ -33,8 +33,7 @@ void syscall_handler (struct intr_frame *);
 /*-------------------------- project.2-System Call -----------------------------*/
 typedef int pid_t;
 /*-------------------------- project.2-System Call -----------------------------*/
-struct lock filesys_lock;
-/*-------------------------- project.2-System call -----------------------------*/
+
 void check_address(void *);
 void get_argument(void *, uint64_t *, int);
 void halt (void);
@@ -394,7 +393,8 @@ void *mmap (void *addr, size_t length, int writable, int fd, off_t offset){
         return NULL;
     }
     // printf("여기 들어와야 함 mmap 전\n");
-    lock_acquire(&filesys_lock);
+    if (!lock_held_by_current_thread(&filesys_lock));
+        lock_acquire(&filesys_lock);
     void* addr_mmap = do_mmap (addr,length, writable, file_mmap, offset);
     lock_release(&filesys_lock);
 	// printf("여기 들어와야 함? mmap 후\n");

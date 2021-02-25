@@ -47,24 +47,47 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 	ASSERT (VM_TYPE(type) != VM_UNINIT)
 
 	struct supplemental_page_table *spt = &thread_current()->spt;
-	// printf("upage address %p\n", (uint64_t*) upage);
+	// printf("vm_alloc_page_with_initializer :: type :: %d :: 111111111111111111\n", type);
 	/* Check wheter the upage is already occupied or not. */
 	// printf("thread in load_segment & alloc_page: %p\n", &thread_current()->magic);
 	if (spt_find_page (spt, upage) == NULL) {
+		// printf("vm_alloc_page_with_initializer :: type :: %d :: 22222222222222222\n", type);
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 		struct page *new_page = malloc(sizeof(struct page));
-		if (VM_TYPE(type) == VM_ANON)
+		switch (VM_TYPE(type))
+		{
+		case VM_ANON:
 			uninit_new(new_page, upage, init, type, aux, &anon_initializer);
-		else if (VM_TYPE(type) == VM_FILE)
-			uninit_new(new_page, upage, init, type, aux, &file_backed_initializer);
-		
-		new_page->writable = writable;
+			new_page->mapping_id = -1;
+			break;
 
+		case VM_FILE:
+			// printf("vm_alloc_page_with_initializer :: type :: %d :: 101010100101010101010\n", type);
+			uninit_new(new_page, upage, init, type, aux, &file_backed_initializer);
+			// printf("vm_alloc_page_with_initializer :: type :: %d :: 20202020200202020200202\n", type);
+			struct file_aux * tmp_aux = (struct file_aux *)aux;
+			// printf("vm_alloc_page_with_initializer :: tmp_aux :: %p\n", tmp_aux);
+			// printf("vm_alloc_page_with_initializer :: tmp_aux->mapping_id :: %d\n", tmp_aux->mapping_id);
+			if (aux != NULL)
+				new_page->mapping_id = tmp_aux->mapping_id;
+			// printf("vm_alloc_page_with_initializer :: type :: %d :: 303030300303030303003030\n", type);
+			break;
+		
+		case VM_PAGE_CACHE:
+			/* code */
+			break;
+		
+		default:
+			break;
+		}
+
+		new_page->writable = writable;
 		/* TODO: Insert the page into the spt. */
-		if (spt_insert_page(spt, new_page))
+		if (spt_insert_page(spt, new_page)) {
 			return true;
+		}
 		else
 			{
 			// setup stack 함수가 false가 날 수 있는 상황
@@ -279,14 +302,23 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 	bool result = false;
 	struct load_aux *aux_child;
 	struct hash_iterator i;
+
+	lock_acquire(&spt_lock);
+	// printf("supplemental_page_table_copy :: 111111111111111 \n");
+
+
 	hash_first(&i, &src->vm);
 	while (hash_next(&i)){
 		// child hash에 들어갈 페이지를 부모 페이지를 가져옴.
 		struct page* parent_page = hash_entry(hash_cur(&i), struct page, hash_elem);
 		switch(parent_page->operations->type){
 			case VM_UNINIT: // UNINIT인 페이지는 할당해야 함.
+				// printf("supplemental_page_table_copy :: case 1 \n");
+
 				aux_child = malloc(sizeof(struct load_aux));
+				// printf("supplemental_page_table_copy :: aux_child before_mem :: %p\n", aux_child);
 				memcpy(aux_child, parent_page->uninit.aux,sizeof(struct load_aux));
+				// printf("supplemental_page_table_copy :: aux_child after_mem :: %p\n", aux_child);
 				result = vm_alloc_page_with_initializer(
 					parent_page->uninit.type, \ 
 					parent_page->va, \
@@ -294,18 +326,49 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 					parent_page->uninit.init, \
 					aux_child);
 				break;
-			default:
+
+			case VM_ANON:
+				// printf("supplemental_page_table_copy :: case 2 \n");
 				result = vm_alloc_page(parent_page->operations->type,parent_page->va, parent_page->writable);
+				// printf("supplemental_page_table_copy :: case 2 :: 11111111111111 \n");
 				if (result){
+					// printf("supplemental_page_table_copy :: case 2 :: 22222222222222 \n");
 					struct page *child_page = spt_find_page(&thread_current()->spt, parent_page->va );
+					// printf("supplemental_page_table_copy :: case 2 :: 33333333333333 \n");
 					if (vm_do_claim_page(child_page) == 0){
+						// printf("supplemental_page_table_copy :: case 2 :: 444444444444444 \n");
 						return false ;
 						}
+					child_page->mapping_id = parent_page->mapping_id;
 					memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
+					// printf("supplemental_page_table_copy :: case 2 :: 55555555555555 \n");
 					}
+				break;
+
+			case VM_FILE:
+				// printf("supplemental_page_table_copy :: case 2 \n");
+				result = vm_alloc_page(parent_page->operations->type,parent_page->va, parent_page->writable);
+				// printf("supplemental_page_table_copy :: case 2 :: 11111111111111 \n");
+				if (result){
+					// printf("supplemental_page_table_copy :: case 2 :: 22222222222222 \n");
+					struct page *child_page = spt_find_page(&thread_current()->spt, parent_page->va );
+					// printf("supplemental_page_table_copy :: case 2 :: 33333333333333 \n");
+					if (vm_do_claim_page(child_page) == 0){
+						// printf("supplemental_page_table_copy :: case 2 :: 444444444444444 \n");
+						return false ;
+						}
+					child_page->mapping_id = parent_page->mapping_id;
+					memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
+					// printf("supplemental_page_table_copy :: case 2 :: 55555555555555 \n");
+					}
+				break;
+
+			default:
 				break;
 		}
 	}
+	// printf("supplemental_page_table_copy :: 22222222222222222 \n");
+	lock_release(&spt_lock);
 
 	return result;
 }

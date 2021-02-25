@@ -26,5 +26,7 @@ void close (int);
 int filesize(int);
 int read (int , void*, unsigned);
 int write(int, const void *, unsigned );
+
+struct lock filesys_lock;
 /*-------------------------- project.2-System call -----------------------------*/
 #endif /* userprog/syscall.h */

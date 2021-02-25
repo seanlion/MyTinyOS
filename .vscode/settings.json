@@ -19,6 +19,7 @@
         "*.inc": "c",
         "filesys.h": "c",
         "file.h": "c",
-        "syscall.h": "c"
+        "syscall.h": "c",
+        "vm.h": "c"
     }
 }

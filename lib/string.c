@@ -48,7 +48,7 @@ int
 memcmp (const void *a_, const void *b_, size_t size) {
 	const unsigned char *a = a_;
 	const unsigned char *b = b_;
-	// printf("a는?? %p\n", a);
+	// printf("a는?? \n");
 	// printf("b는?? %p\n", b);
 	ASSERT (a != NULL || size == 0);
 	ASSERT (b != NULL || size == 0);

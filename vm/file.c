@@ -55,8 +55,8 @@ file_backed_destroy (struct page *page) {
 		}
 	}
 
-	if(page->frame != NULL) {
 		free(page->frame);
+	if(page->frame != NULL) {
 	}
 }
 
@@ -102,16 +102,21 @@ do_mmap (void *addr, size_t length, int writable,
 
 	}
 
+	struct file* reopen_file = file_duplicate(file);
+
 	while (read_bytes > 0 || zero_bytes > 0) {
+
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+		// printf("do_mmap :: page_read_bytes :: %d\n\n", page_read_bytes);
+		// printf("do_mmap :: file :: %d\n\n", file);
+		// printf("do_mmap :: file_length(file) :: %d\n\n", file_length(file));
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
-		struct file_page *tmp_aux = malloc(sizeof(struct file_page));
-		tmp_aux->file = file;
+		struct file_aux *tmp_aux = malloc(sizeof(struct file_aux));
+		tmp_aux->file = reopen_file;
 		tmp_aux->offset = offset;
 		tmp_aux->read_bytes = page_read_bytes;
 		tmp_aux->zero_bytes = page_zero_bytes;
 		// tmp_aux->writable = writable;
-		tmp_aux->length = length;
 		tmp_aux->mapping_id = map_id;
 		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_map, tmp_aux) )
 			{
@@ -133,25 +138,27 @@ do_mmap (void *addr, size_t length, int writable,
 
 static bool
 lazy_map (struct page *page, void *aux){
-	// printf("pageeee addr %p\n",page);
-	struct file_page *tmp_aux = (struct file_page *)aux;
+	// printf("lazy_map :: addr :: %p\n",page);
+	struct file_aux *tmp_aux = (struct file_aux *)aux;
 
-	uint8_t *kva = page->frame->kva;
 	if(page->frame == NULL){
 		return false;
 	}
-	struct file* reopen_file = file_reopen(tmp_aux->file);
+	// printf("lazy_map :: tmp_aux->read_bytes :: %d\n",tmp_aux->read_bytes);
+	// printf("lazy_map :: file_length(tmp_aux->file) :: %p\n",tmp_aux->file);
+	uint8_t *kva = page->frame->kva;
+	// struct file* reopen_file = file_duplicate(tmp_aux->file);
+	// printf("lazy_map :: file_length(reopen_file) :: %d\n",file_length(tmp_aux->file));
 	// reopen을 한 파일은 예전 파일과 달라져있을 수 있어서 read byte를 다시 받는다?
-	uint32_t read_bytes = file_read_at(reopen_file, kva, tmp_aux->read_bytes, tmp_aux->offset);
-	uint32_t zero_bytes = (PGSIZE - read_bytes) % PGSIZE;
+	uint32_t read_bytes = file_read_at(tmp_aux->file, kva, tmp_aux->read_bytes, tmp_aux->offset);
+	// printf("lazy_map :: read_bytes %d\n",read_bytes);
+	uint32_t zero_bytes = PGSIZE - read_bytes;
 	// printf("여기 들어옴 lazy map111\n");
 	memset(kva + read_bytes, 0, zero_bytes);
-	page->file.file = reopen_file; // file 복제해서 썼으니 파일 갱신 
+	page->file.file = tmp_aux->file; // file 복제해서 썼으니 파일 갱신 
 	page->file.offset = tmp_aux->offset;
 	page->file.read_bytes = read_bytes;
     page->file.zero_bytes = zero_bytes;
-	page->file.length = tmp_aux->length;
-	page->file.mapping_id = tmp_aux->mapping_id;
 	free(tmp_aux);
 	return true;
 }
@@ -166,7 +173,7 @@ do_munmap (void *addr) {
 	struct thread *t = thread_current();
 	struct page* page = spt_find_page(&t->spt, addr);
 	struct file* curr_file = page->file.file;
-	t->spt.vm.aux = &page->file;
+	t->spt.vm.aux = &page->mapping_id;
 
 	// printf("do_mumap :: page->file.file :: %p\n", page->file.file);
 	// printf("do mumap :: hash apply 이전\n");
@@ -185,32 +192,24 @@ void
 munmap_action (struct hash_elem *e, void* aux) {
 	struct thread *t = thread_current();
 	struct page* page = hash_entry(e, struct page, hash_elem);
-	struct file_page *tmp_aux = (struct file_page *)aux;
+	int mapping_id = *(int *)aux;
 	// printf("munmap_action :: munmap_action 이전\n");
 	
 	// if (page->operations->type == VM_FILE ) {	
-		if (page->file.mapping_id == (int)tmp_aux->mapping_id && VM_TYPE(page->operations->type) == VM_FILE ) {
-			if (pml4_is_dirty(&t->pml4, page->va)) {
-				if (page->frame != NULL){
-					
-					if (tmp_aux->read_bytes != file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset)) {
-						exit(-1);
-					}
+	if (page->mapping_id == mapping_id) {
+		if (VM_TYPE(page->operations->type) == VM_FILE  && pml4_is_dirty(&t->pml4, page->va)) {
+			if (page->frame != NULL){
+				
+				file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
 
-					for (int i = 2; i < t->next_fd; i++) {
-						if (i == page->file.mapping_id) {
-							t->fd_table[i] = file_reopen(page->file.file);
-						}
+				for (int i = 2; i < t->next_fd; i++) {
+					if (i == page->mapping_id) {
+						t->fd_table[i] = file_reopen(page->file.file);
 					}
 				}
 			}
-			spt_remove_page(&t->spt, page);
-		// }
-		// printf("munmap_action before free :: page->file.file :: %p\n", page->file.file);
-		// free(page->frame);
-		// printf("munmap_action after free :: page->file.file :: %p\n", page->file.file);
-		
-		// printf("munmap_action after free :: page->file.file :: %p\n", page->file.file);
+		}
+		spt_remove_page(&t->spt, page);
 	}
 	// printf("munmap_action :: munmap_action 이후\n");
 }

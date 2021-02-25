@@ -292,6 +292,9 @@ process_exec (void *f_name) {
 
     char *file_static_name[48];
     memcpy(file_static_name, file_name, strlen(file_name)+1);
+	if (file_static_name == NULL)
+		return -1;
+
     /*-------------------------- project.2-Parsing -----------------------------*/
 	bool success;
 	/* We cannot use the intr_frame in the thread structure.
@@ -453,11 +456,11 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Open executable file. */
 	// 	프로그램의 파일을 open 할 때 file_deny_write() 함수를 호출
 	// 실행중인 파일 구조체를 thread 구조체에 추가
-	// lock_acquire(&process_lock);
+	lock_acquire(&filesys_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
 	file = filesys_open (file_name);
 	if (file == NULL) {
-		// lock_release(&process_lock);
+		lock_release(&filesys_lock);
         printf ("load: %s: open failed\n", file_name);
 		/*-------------------------- project.2-Denying write -----------------------------*/
 		goto done;
@@ -466,7 +469,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/*-------------------------- project.2-Denying write -----------------------------*/
 	t->running_file = file;
 	file_deny_write(t->running_file);
-	// lock_release(&process_lock);
+	lock_release(&filesys_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
 
 /* Read and verify executable header. */
@@ -719,7 +722,9 @@ lazy_load_segment (struct page *page, void *aux) {
 	if(page->frame == NULL){
 		return false;
 	}
-	if (file_read_at(tmp_aux->file, kva, tmp_aux->read_bytes, tmp_aux->offset) != (int) tmp_aux->read_bytes) {
+
+	struct file * reopen_file = file_reopen(tmp_aux->file);
+	if (file_read_at(reopen_file, kva, tmp_aux->read_bytes, tmp_aux->offset) != (int) tmp_aux->read_bytes) {
 		free(tmp_aux);
 		return false;
 	}
@@ -947,8 +952,8 @@ void process_exit(void) {
         process_close_file(t->next_fd);
 				
     }
+    // palloc_free_page(t->fd_table);
     file_close(t->running_file);
-    // palloc_free_multiple(t->fd_table, 2);
     sema_up(&t->sema_exit);
     process_cleanup();
 }

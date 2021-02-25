@@ -68,7 +68,7 @@ struct page {
 	bool writable;				/* True일 경우 해당 주소에 write 가능, False일 경우 해당 주소에 write 불가능 */
 	bool is_loaded;				/* 물리메모리의 탑재 여부를 알려주는 플래그 */
 	size_t swap_slot;			/* 스왑 슬롯 */
-	struct list_elem mmap_elem;	/* mmap 리스트 Element */
+	struct list_elem mmap_elem;	/* mmap_file의 page_list에서 쓰기 위한 리스트 Element */
 	struct hash_elem hash_elem;	/* 해시 테이블 Element */
 };
 
@@ -79,6 +79,13 @@ struct load_aux {
 	size_t zero_bytes;			/* 0으로 채울 남은 페이지의 바이트 */
 	bool writable;				/* True일 경우 해당 주소에 write 가능, False일 경우 해당 주소에 write 불가능 */
 };
+
+// struct mmap_file{
+// 	int mapid;
+// 	struct list page_list;
+// 	struct file* file;
+// 	struct list_elem elem; // thread의 mmap_list에서 쓰는 리스트 elem
+// }
 
 /* The representation of "frame" */
 struct frame {

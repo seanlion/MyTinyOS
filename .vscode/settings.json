@@ -16,6 +16,9 @@
         "fstream": "cpp",
         "streambuf": "cpp",
         "uninit.h": "c",
-        "*.inc": "c"
+        "*.inc": "c",
+        "filesys.h": "c",
+        "file.h": "c",
+        "syscall.h": "c"
     }
 }

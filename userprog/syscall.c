@@ -51,6 +51,8 @@ int write(int, const void *, unsigned );
 int wait(tid_t);
 pid_t fork (const char *);
 /*-------------------------- project.2-System call -----------------------------*/
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap (void *addr);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -81,7 +83,7 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
-	
+	thread_current()->rsp = f->rsp; // 커널 스택의 rsp 쓰기전에 user stack의 rsp 저장.
     uint64_t number = f->R.rax;
 	switch (number) {
 		case SYS_HALT:
@@ -114,9 +116,6 @@ syscall_handler (struct intr_frame *f UNUSED) {
             f->R.rax = fork(f->R.rdi);
 			break;
         case SYS_EXEC:
-        
-            // printf("-----------------------------addr:%p\n", f->R.rdi);
-            // check_address(f->R.rdi);
             f->R.rax = exec(f->R.rdi);
             break;
         case SYS_WAIT:
@@ -147,6 +146,13 @@ syscall_handler (struct intr_frame *f UNUSED) {
             break;
         case SYS_CLOSE:
             close(f->R.rdi);
+            break;
+        case SYS_MMAP:
+            f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+            break;
+
+        case SYS_MUNMAP:
+            munmap(f->R.rdi);
             break;
 		default:
             // printf("default\n");
@@ -250,25 +256,21 @@ int write(int fd, const void *buffer, unsigned size) {
 /*-------------------------- project.2-System call -----------------------------*/
 
 int open (const char *file) {
-    // lock_acquire(&filesys_lock);
    if (file)
     {
         struct file * open_file = filesys_open(file);
         if (open_file)
         {
             int result = process_add_file(open_file);
-            // lock_release(&filesys_lock);
             return result;
         }
         else
         {
-            // lock_release(&filesys_lock);
             return -1;
         }
     }
     else
     {
-        // lock_release(&filesys_lock);
         return -1;
     }
 
@@ -278,31 +280,25 @@ int open (const char *file) {
 
 /*-------------------------- project.2-System call -----------------------------*/
 int filesize(int fd) {
-    // lock_acquire(&filesys_lock);
     struct file *want_length_file = process_get_file(fd);
     int ret =-1;
     if (want_length_file)
     {
         ret = file_length(want_length_file);
-        // lock_release(&filesys_lock);
         return ret; /* ASSERT (NULL), so we need to branch out */
     }
     else
     {
-        // lock_release(&filesys_lock);
         return ret;
     }
 }
 /*-------------------------- project.2-System call -----------------------------*/
 
 int exec(const char *file){
-    // lock_acquire(&filesys_lock);
     if (file == NULL || *file == "") {
-        // lock_release(&filesys_lock);
         exit(-1);
     }
     int result = process_exec(file);
-    // lock_release(&filesys_lock);
     return result;
 }
 
@@ -331,19 +327,15 @@ int read (int fd, void*buffer, unsigned size) {
 /*-------------------------- project.2-System call -----------------------------*/
 
 void seek(int fd, unsigned position){
-    // lock_acquire(&filesys_lock);
     struct file *target = process_get_file(fd);
     file_seek(target, position);
-    // lock_release(&filesys_lock);
-}
+} 
 
 
 
 unsigned tell(int fd){
-    // lock_acquire(&filesys_lock);
     struct file *target = process_get_file(fd);
     unsigned result = file_tell(target);
-    // lock_release(&filesys_lock);
     return result;
 }
 
@@ -351,9 +343,7 @@ unsigned tell(int fd){
 
 
 void close(int fd){
-    // lock_acquire(&filesys_lock);
     process_close_file(fd);
-    // lock_release(&filesys_lock);
 }
 
 /*-------------------------- project.2-Process -----------------------------*/
@@ -361,9 +351,7 @@ void close(int fd){
 
 /*-------------------------- project.2-Process -----------------------------*/
 int wait(pid_t pid) {
-    // lock_acquire(&filesys_lock);
     int result = process_wait(pid);
-    // lock_release(&filesys_lock);
     return result;
 }
 
@@ -372,11 +360,54 @@ int wait(pid_t pid) {
 
 /*-------------------------- project.2-Process -----------------------------*/
 pid_t fork (const char *thread_name) {
-    // lock_acquire(&filesys_lock);
     struct intr_frame *cur_if = &thread_current()->fork_tf;
     pid_t result = process_fork (thread_name, cur_if);
-    // lock_release(&filesys_lock);
     return result;
 }
 
 /*-------------------------- project.2-Process -----------------------------*/
+
+
+/*-------------------------- project.3-map,unmap -----------------------------*/
+
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset){
+    struct file* file_mmap = process_get_file(fd);
+    if (!is_user_vaddr(addr))
+			return NULL;
+
+    if (file_mmap == NULL)
+        return NULL;
+    // 파일이 0바이트이면
+    if (file_length(file_mmap) == 0){
+        return NULL;
+    }
+    // addr이 0이면, page aligned 안 되어 있으면
+    if (addr == NULL || addr == 0 || pg_round_down(addr) != addr)
+        return NULL;
+
+    if (pg_ofs(offset) !=0){
+        return NULL;
+    }
+    // 기존에 매핑 된 페이지를 덮어쓰려 하면
+    // length가 0이면
+    if ((long long)length <= 0LL){
+        return NULL;
+    }
+    // printf("여기 들어와야 함 mmap 전\n");
+    lock_acquire(&filesys_lock);
+    void* addr_mmap = do_mmap (addr,length, writable, file_mmap, offset);
+    lock_release(&filesys_lock);
+	// printf("여기 들어와야 함? mmap 후\n");
+    // printf("------");
+    return addr_mmap;
+}
+
+void munmap (void *addr){
+    if (addr == NULL || addr == 0)
+        return NULL;
+    lock_acquire(&filesys_lock);
+    do_munmap(addr);
+    lock_release(&filesys_lock);
+}
+
+/*-------------------------- project.3-map,unmap -----------------------------*/

@@ -50,9 +50,118 @@ file_backed_destroy (struct page *page) {
 void *
 do_mmap (void *addr, size_t length, int writable,
 		struct file *file, off_t offset) {
+	// fail 처리되는 것들 처리
+	if (length <= 0){
+        return NULL;
+	}
+
+	// mmap overlap 예외처리
+	void* overlap_addr = addr+length;
+	void* std_addr = addr;
+	void* mmap_addr = addr;
+	while (std_addr < overlap_addr){ // 전체 길이보다 작아야 루프 끝남.
+		if (!is_user_vaddr(std_addr))
+			return NULL;
+		struct page* page = spt_find_page(&thread_current()->spt, std_addr);
+		if( page != NULL){
+			return NULL;
+		}
+		std_addr +=PGSIZE;
+	}
+	// printf("여기 들어와야 함?\n");
+	uint32_t read_bytes = (uint32_t) length;
+	uint32_t zero_bytes = 0;
+	uint32_t remain_bytes = (PGSIZE - read_bytes) % PGSIZE; // read_bytes가 PGSIZE보다 크면 0으로 남김.
+	if (remain_bytes !=0){
+		zero_bytes = remain_bytes;
+	}
+	// 처음 addr을 리턴해줘야 하기 때문에 저장
+
+	// mapping id를 넣어주기 위해 파일 테이블에서 파일 위치를 id로 넣음.(fd_table에서 파일을 찾음.) -> 이거는 일단 보류.
+
+	while (read_bytes > 0 || zero_bytes > 0) {
+		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+		size_t page_zero_bytes = PGSIZE - page_read_bytes;
+		struct file_page *tmp_aux = malloc(sizeof(struct file_page));
+		tmp_aux->file = file;
+		tmp_aux->offset = offset;
+		tmp_aux->read_bytes = read_bytes;
+		tmp_aux->zero_bytes = zero_bytes;
+		tmp_aux->writable = writable;
+		tmp_aux->length = length;
+		if (!vm_alloc_page_with_initializer (VM_FILE, addr,
+					writable, lazy_map, tmp_aux))
+			{
+				// free(tmp_aux);
+				return false;
+			}
+
+		read_bytes -= page_read_bytes;
+		zero_bytes -= page_zero_bytes;
+		offset += PGSIZE; 
+		addr += PGSIZE;
+	}
+	// printf("여기 들어옴 do map222\n");
+
+	return mmap_addr;
 }
+
+/*-------------------------- project.3-map,unmap -----------------------------*/
+
+static bool
+lazy_map (struct page *page, void *aux){
+
+	struct file_page *tmp_aux = (struct file_page *)aux;
+
+	uint8_t *kva = page->frame->kva;
+	if(page->frame == NULL){
+		return false;
+	}
+	struct file* reopen_file = file_reopen(tmp_aux->file);
+	// reopen을 한 파일은 예전 파일과 달라져있을 수 있어서 read byte를 다시 받는다?
+	uint32_t read_bytes = file_read_at(reopen_file, kva, tmp_aux->read_bytes, tmp_aux->offset);
+	uint32_t zero_bytes = (PGSIZE - read_bytes) % PGSIZE;
+	// printf("여기 들어옴 lazy map111\n");
+	memset(kva + read_bytes, 0, zero_bytes);
+	page->file.file = reopen_file; // file 복제해서 썼으니 파일 갱신 
+	// printf("여기 들어옴 lazy map222\n");
+	page->file.offset = tmp_aux->offset;
+	page->file.read_bytes = read_bytes;
+    page->file.zero_bytes = zero_bytes;
+	page->file.length = tmp_aux->length;
+	free(tmp_aux);
+	return true;
+}
+
+
+
+/*-------------------------- project.3-map,unmap -----------------------------*/
 
 /* Do the munmap */
 void
 do_munmap (void *addr) {
+	struct thread *t = thread_current();
+	struct page* page = spt_find_page(&t->spt, addr);
+	size_t file_length = page->file.length;
+	size_t std_addr = addr;
+	size_t unmap_addr = std_addr + file_length;
+	// std_addr < unmap_addr
+	while (true){ // 전체 길이보다 작아야 루프 끝남.
+		struct page* page = spt_find_page(&thread_current()->spt, std_addr);
+		if( page == NULL){
+			break;
+		}
+		if (page->operations->type == VM_FILE && pml4_is_dirty(&t->pml4, page->va))
+		{
+			if (page->frame != NULL){
+				file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset); // 디스크에 있는 파일에 변경사항 있으면 반영
+			}
+
+		}
+		free(page->frame);
+		spt_remove_page(&t->spt,page);
+		// pml4_clear_page(&t->pml4, pg_round_down(page->va));
+		std_addr +=PGSIZE;
+	}
+	file_close(page->file.file);
 }

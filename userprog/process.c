@@ -543,7 +543,7 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
-
+	
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 
@@ -786,17 +786,15 @@ static bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
-
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
-
 	if (vm_alloc_page(VM_MARKER_0 | VM_ANON, stack_bottom, true)) {
 		if (vm_claim_page(stack_bottom)) {
 			// rsp에 page를 넣으려고 했으나, 컴파일러가 에러가 발생.
 			// if_->rsp = stack_bottom + PGSIZE;
-			if_->rsp = USER_STACK;
+			if_->rsp = stack_bottom + PGSIZE;
 			success = true;
 		}
 	}
@@ -915,12 +913,13 @@ int process_add_file(struct file *f) {
 /*-------------------------- project.2-System Call -----------------------------*/
 struct file * process_get_file(int fd) {
     struct thread *t = thread_current();
+    // if (fd <=1 || fd >= t->next_fd ) 
+	// 	return NULL;
 	struct file* fd_file = t->fd_table[fd];
-    // if (fd < 2 || t->next_fd <= fd) return NULL;
 	if(fd_file)
 		return fd_file;
 	else
-		return	NULL;
+		return NULL;
 }
 /*-------------------------- project.2-System Call -----------------------------*/
 

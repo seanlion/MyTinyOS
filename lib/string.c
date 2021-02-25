@@ -48,13 +48,20 @@ int
 memcmp (const void *a_, const void *b_, size_t size) {
 	const unsigned char *a = a_;
 	const unsigned char *b = b_;
-
+	// printf("a는?? %p\n", a);
+	// printf("b는?? %p\n", b);
 	ASSERT (a != NULL || size == 0);
 	ASSERT (b != NULL || size == 0);
 
 	for (; size-- > 0; a++, b++)
+		// printf("들어가나?\n");
+		// printf("compare -- a는?? %c\n", *a);
+		// printf("compare -- b는?? %c\n", *b);
 		if (*a != *b)
+		{
+
 			return *a > *b ? +1 : -1;
+		}
 	return 0;
 }
 

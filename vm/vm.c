@@ -267,11 +267,6 @@ supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct supplemental_page_table *src UNUSED) {
-			// void *old_aux = src->vm.aux;
-			// src->vm.aux = &dst->vm;
-			// hash_apply(&src->vm, page_insert);
-			// src->vm.aux = old_aux;
-
 	// iterator 돌리기
 	bool result = false;
 	struct load_aux *aux_child;

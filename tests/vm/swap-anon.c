@@ -27,11 +27,9 @@ test_main (void)
 	size_t i;
     void* pa;
     char *mem;
-    // printf("---------------\n");
     for (i = 0 ; i < PAGE_COUNT ; i++) {
         if(!(i % 512))
             msg ("write sparsely over page %zu", i);
-            // printf("들어오나???\n");
         mem = (big_chunks+(i*PAGE_SIZE));
         *mem = (char)i;
     }

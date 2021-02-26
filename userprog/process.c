@@ -335,7 +335,7 @@ process_exec (void *f_name) {
     if(!success) return-1;
     argument_stack(arg_list, token_count , &_if);
 	/*-------------------------- project.2-Parsing -----------------------------*/
-	printf("process_exec에서 load를 진행했다!!!!\n");
+	// printf("process_exec에서 load를 진행했다!!!!\n");
 	/* If load failed, quit. */
     /*-------------------------- project.2-Parsing -----------------------------*/
 
@@ -952,7 +952,7 @@ void process_exit(void) {
 				
     }
     // palloc_free_page(t->fd_table);
-    file_close(t->running_file);
+    // file_close(t->running_file);
     sema_up(&t->sema_exit);
     process_cleanup();
 }

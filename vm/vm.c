@@ -322,8 +322,10 @@ vm_do_claim_page (struct page *page) {
 	// printf("여기서 type은??? %d\n", page->operations->type);
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	struct thread *t = thread_current();
-	if (pml4_set_page(t->pml4, page->va, frame->kva, page->writable))
-		return swap_in (page, frame->kva);
+	if (!pml4_set_page(t->pml4, page->va, frame->kva, page->writable))
+		return false;
+
+	return swap_in (page, frame->kva);
 	// pml4_set_page(t->pml4, page->va, frame->kva, true);
 }
 
@@ -484,7 +486,7 @@ free_frame(void *kva) {
 void 
 __free_page(struct frame *frame) {
 	del_frame_to_clock_list(frame);
-	free(frame);
+	// free(frame);
 }
 
 struct list_elem*

@@ -24,6 +24,7 @@ static struct bitmap *swap_table;
 void
 vm_anon_init (void) {
 	/* TODO: Set up the swap_disk. */
+	// printf("anon init 들어오나??\n");
 	swap_disk = disk_get(1, 1);
 	/* disk_size: SECTOR 단위로 반환
 	 * bitmap_create: PG 단위로 비트맵을 생성
@@ -35,6 +36,7 @@ vm_anon_init (void) {
 bool
 anon_initializer (struct page *page, enum vm_type type, void *kva) {
 	/* Set up the handler */
+	// printf("anon initializer 들어오나??\n");
 	page->operations = &anon_ops;
 	struct anon_page *anon_page = &page->anon;
 	return true;
@@ -43,12 +45,12 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the swap disk. */
 static bool
 anon_swap_in (struct page *page, void *kva) {
+
+	// lock_acquire(&clock_list_lock);
 	struct anon_page *anon_page = &page->anon;
-
-	lock_acquire(&clock_list_lock);
-
-	// 물리 메모리 페이지에 디스크의 데이터 적기
 	size_t number = anon_page->st_number;
+	// printf("swap in의 number는?? %d\n",number);
+	// 물리 메모리 페이지에 디스크의 데이터 적기
 	for (int i = 0; i < SECTOR_PER_PAGE; i++) {
 		disk_read(swap_disk, (number * SECTOR_PER_PAGE) + i, kva + (DISK_SECTOR_SIZE * i));
 	}
@@ -62,7 +64,7 @@ anon_swap_in (struct page *page, void *kva) {
 	// swap_table에 해당 number 공간이 들어있다고 적기
 	bitmap_set(swap_table, number, false);
 
-	lock_release(&clock_list_lock);
+	// lock_release(&clock_list_lock);
 	return true;
 }
 
@@ -71,7 +73,7 @@ static bool
 anon_swap_out (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
 
-	lock_acquire(&clock_list_lock);
+	// lock_acquire(&clock_list_lock);
 	
 	// false는 비어있음, true는 들어있음
 	size_t number = bitmap_scan(swap_table, 0, 1, false);
@@ -89,7 +91,7 @@ anon_swap_out (struct page *page) {
 	bitmap_set(swap_table, number, true);
 	page->frame = NULL;
 
-	lock_release(&clock_list_lock);
+	// lock_release(&clock_list_lock);
 
 	return true;
 }

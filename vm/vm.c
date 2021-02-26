@@ -63,6 +63,7 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		switch (VM_TYPE(type))
 		{
 		case VM_ANON:
+			// printf("vm_alloc_page_with_initializer에서 VM_ANON 타입으로 uninit new한다!!\n");
 			uninit_new(new_page, upage, init, type, aux, &anon_initializer);
 			new_page->mapping_id = -1;
 			break;
@@ -192,7 +193,7 @@ vm_get_frame (void) {
 	if (frame == NULL)
 		free(frame);
 	ASSERT (frame != NULL);
-
+	// printf("vm_get_frame 들어오는데 evict 이전\n");
 	frame->kva = palloc_get_page(PAL_USER | PAL_ZERO);
 	if (frame->kva == NULL) {
 		free(frame);
@@ -201,6 +202,8 @@ vm_get_frame (void) {
 		lock_release(&clock_list_lock);
 		
 	}
+	// printf("vm_get_frame 들어오는데 evict 이후\n");
+
 	frame->page = NULL;
 
 	add_frame_to_clock_list(frame);
@@ -271,6 +274,12 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 		if((!(page->writable)) && write)
 			exit(-1);
 
+		// if(VM_TYPE(page->operations->type) == VM_ANON || VM_TYPE(page->operations->type) == VM_FILE) {
+		// 	struct frame *frame = vm_evict_frame();
+		// 	page->frame = frame;
+		// 	return swap_in(page, frame->kva);
+		// }
+		// printf("try handle fault 들어오나???\n");
 		return vm_do_claim_page (page);
 	}
 
@@ -309,7 +318,8 @@ vm_do_claim_page (struct page *page) {
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
-
+	// printf("swap in 위해 do claim page들어오나??\n");
+	// printf("여기서 type은??? %d\n", page->operations->type);
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	struct thread *t = thread_current();
 	if (pml4_set_page(t->pml4, page->va, frame->kva, page->writable))

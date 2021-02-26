@@ -25,7 +25,7 @@ static const struct page_operations uninit_ops = {
 /* DO NOT MODIFY this function */
 void
 uninit_new (struct page *page, void *va, vm_initializer *init, enum vm_type type, void *aux, bool (*initializer)(struct page *, enum vm_type, void *)) {
-	
+	// printf("uninit_new 에서 init이 들어왔나요?? %p\n", init);
 	ASSERT (page != NULL);
 	*page = (struct page) {
 		.operations = &uninit_ops,
@@ -48,7 +48,8 @@ uninit_initialize (struct page *page, void *kva) {
 	/* Fetch first, page_initialize may overwrite the values */
 	vm_initializer *init = uninit->init;
 	void *aux = uninit->aux;
-
+	// printf("uninit initialize 들어오나???\n");
+	// printf("이 함수에서 init이 있나?? %p\n", init);
 	/* TODO: You may need to fix this function. */
 	return uninit->page_initializer (page, uninit->type, kva) &&
 		(init ? init (page, aux) : true);

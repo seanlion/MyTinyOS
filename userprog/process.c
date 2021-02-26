@@ -335,7 +335,7 @@ process_exec (void *f_name) {
     if(!success) return-1;
     argument_stack(arg_list, token_count , &_if);
 	/*-------------------------- project.2-Parsing -----------------------------*/
-
+	printf("process_exec에서 load를 진행했다!!!!\n");
 	/* If load failed, quit. */
     /*-------------------------- project.2-Parsing -----------------------------*/
 
@@ -718,18 +718,17 @@ lazy_load_segment (struct page *page, void *aux) {
 
 	struct load_aux *tmp_aux = (struct load_aux *)aux;
 
-	uint8_t *kva = page->frame->kva;
 	if(page->frame == NULL){
 		return false;
 	}
 
+	uint8_t *kva = page->frame->kva;
 	struct file * reopen_file = file_reopen(tmp_aux->file);
 	if (file_read_at(reopen_file, kva, tmp_aux->read_bytes, tmp_aux->offset) != (int) tmp_aux->read_bytes) {
 		free(tmp_aux);
 		return false;
 	}
 	memset(kva + (tmp_aux->read_bytes), 0, tmp_aux->zero_bytes);
-	
 	free(tmp_aux);
 	return true;
 }
@@ -766,8 +765,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		struct load_aux *tmp_aux = malloc(sizeof(struct load_aux));
 		tmp_aux->file = file;
 		tmp_aux->offset = ofs;
-		tmp_aux->read_bytes = read_bytes;
-		tmp_aux->zero_bytes = zero_bytes;
+		tmp_aux->read_bytes = page_read_bytes;
+		tmp_aux->zero_bytes = page_zero_bytes;
 		tmp_aux->writable = writable;
 		// printf("upage address in load_segment: %p\n", upage);
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,

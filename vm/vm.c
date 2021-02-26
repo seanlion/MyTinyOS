@@ -3,6 +3,7 @@
 #include "threads/malloc.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"
+#include <list.h>
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -16,6 +17,9 @@ vm_init (void) {
 	register_inspect_intr ();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
+	list_init(&clock_list);
+	lock_init(&clock_list_lock);
+	clock_ptr = NULL;
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -141,9 +145,29 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 /* Get the struct frame, that will be evicted. */
 static struct frame *
 vm_get_victim (void) {
+	/* TODO: The policy for eviction is up to you. */
 	struct frame *victim = NULL;
-	 /* TODO: The policy for eviction is up to you. */
+	struct frame *curr_frame;
+	void *va;
 
+	if (clock_ptr == NULL) {
+		clock_ptr = list_begin(&clock_list);
+	}
+
+	while (true) {
+		curr_frame = list_entry(clock_ptr, struct frame, list_elem);
+		va = curr_frame->page->va;
+		if (!pml4_is_accessed(thread_current()->pml4, va)) {
+			victim = curr_frame;
+			break;
+		}
+		pml4_set_accessed(thread_current()->pml4, va, false);
+		clock_ptr = get_next_clock();
+		if (clock_ptr == NULL) {
+			clock_ptr = list_begin(&clock_list);
+		}
+	}
+	
 	return victim;
 }
 
@@ -151,10 +175,10 @@ vm_get_victim (void) {
  * Return NULL on error.*/
 static struct frame *
 vm_evict_frame (void) {
-	struct frame *victim UNUSED = vm_get_victim ();
 	/* TODO: swap out the victim and return the evicted frame. */
-
-	return NULL;
+	struct frame *victim = vm_get_victim ();
+	swap_out(victim->page);
+	return victim;
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
@@ -172,8 +196,14 @@ vm_get_frame (void) {
 	frame->kva = palloc_get_page(PAL_USER | PAL_ZERO);
 	if (frame->kva == NULL) {
 		free(frame);
+		lock_acquire(&clock_list_lock);
+		frame = vm_evict_frame();
+		lock_release(&clock_list_lock);
+		
 	}
 	frame->page = NULL;
+
+	add_frame_to_clock_list(frame);
 
 	ASSERT (frame->page == NULL);
 	return frame;
@@ -403,7 +433,54 @@ page_less (const struct hash_elem *a_,
   return a->va < b->va;
 }
 
-void page_delete(const struct hash_elem *e, void *aux){
+void 
+page_delete(const struct hash_elem *e, void *aux){
 	struct page* page_for_deletion = hash_entry(e, struct page, hash_elem);
 	vm_dealloc_page(page_for_deletion);
+}
+
+void
+add_frame_to_clock_list(struct frame *frame) {
+	list_push_back(&clock_list, &frame->list_elem);
+}
+
+void
+del_frame_to_clock_list(struct frame *frame) {
+	list_remove(&frame->list_elem);
+}
+
+struct frame*
+alloc_frame(void) {
+	struct frame *frame = vm_get_frame();
+	add_frame_to_clock_list(frame);
+	return frame;
+}
+
+void 
+free_frame(void *kva) {
+	struct list_elem *e;
+	struct frame *frame;
+	for (e = list_begin(&clock_list); e != list_end(&clock_list);) {
+		frame = list_entry(e, struct frame, list_elem);
+		if (frame->kva == kva) {
+			__free_page(frame);
+			break;
+		}
+		e = list_next(e);
+	}
+	return;
+}
+
+void 
+__free_page(struct frame *frame) {
+	del_frame_to_clock_list(frame);
+	free(frame);
+}
+
+struct list_elem*
+get_next_clock() {
+	clock_ptr = list_next(clock_ptr);
+	if (clock_ptr == list_end(&clock_list))
+		return NULL;
+	return clock_ptr;
 }

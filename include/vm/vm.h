@@ -89,6 +89,8 @@ struct load_aux {
 struct frame {
 	void *kva;
 	struct page *page;
+	struct thread *thread;
+	struct list_elem list_elem;
 };
 
 /* The function table for page operations.
@@ -115,6 +117,9 @@ struct supplemental_page_table {
 };
 
 struct lock spt_lock;
+struct list clock_list;
+struct lock clock_list_lock;
+struct list_elem *clock_ptr;
 
 #include "threads/thread.h"
 void supplemental_page_table_init (struct supplemental_page_table *spt);
@@ -143,4 +148,12 @@ uint64_t page_hash (const struct hash_elem *p_, void *aux UNUSED);
 bool page_less (const struct hash_elem *a_,
            const struct hash_elem *b_, void *aux UNUSED);
 void page_delete(const struct hash_elem *e, void *aux);
+
+void add_frame_to_clock_list(struct frame *frame);
+void del_frame_to_clock_list(struct frame *frame);
+struct frame *alloc_frame(void);
+void free_frame(void *kva);
+void __free_page(struct frame *frame);
+struct list_elem *get_next_clock();
+
 #endif  /* VM_VM_H */

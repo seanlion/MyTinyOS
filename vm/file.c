@@ -1,6 +1,7 @@
 /* file.c: Implementation of memory backed file object (mmaped object). */
 
 #include "vm/vm.h"
+#include "userprog/syscall.h"
 
 static bool file_backed_swap_in (struct page *page, void *kva);
 static bool file_backed_swap_out (struct page *page);
@@ -28,35 +29,58 @@ bool
 file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 	/* Set up the handler */
 	page->operations = &file_ops;
-
 	struct file_page *file_page = &page->file;
+	return true;
 }
 
 /* Swap in the page by read contents from the file. */
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
+
+	lock_acquire(&filesys_lock);
+
+	uint32_t read_bytes = file_read_at(file_page->file, kva, file_page->read_bytes, file_page->offset);
+	uint32_t zero_bytes = PGSIZE - read_bytes;
+	memset(kva + read_bytes, 0, zero_bytes);
+
+	lock_release(&filesys_lock);
+	return true;
 }
 
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
+	struct thread *t = thread_current();
+
+	lock_acquire(&filesys_lock);
+	
+	if (pml4_is_dirty(t->pml4, page->va) && page->frame != NULL) {
+		// 디스크에 있는 파일에 변경사항 있으면 반영
+		file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
+		pml4_set_dirty(t->pml4, page->va, false);
+	}
+
+	lock_release(&filesys_lock);
+
+	return true;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
 static void
 file_backed_destroy (struct page *page) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
 	struct thread *t = thread_current();
 	if (pml4_is_dirty(t->pml4, page->va)) {
 		if(page->frame != NULL) {
-			file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset); // 디스크에 있는 파일에 변경사항 있으면 반영
+			// 디스크에 있는 파일에 변경사항 있으면 반영
+			file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
 		}
 	}
 
-		free(page->frame);
 	if(page->frame != NULL) {
+		free(page->frame);
 	}
 }
 
@@ -144,16 +168,11 @@ lazy_map (struct page *page, void *aux){
 	if(page->frame == NULL){
 		return false;
 	}
-	// printf("lazy_map :: tmp_aux->read_bytes :: %d\n",tmp_aux->read_bytes);
-	// printf("lazy_map :: file_length(tmp_aux->file) :: %p\n",tmp_aux->file);
 	uint8_t *kva = page->frame->kva;
 	// struct file* reopen_file = file_duplicate(tmp_aux->file);
-	// printf("lazy_map :: file_length(reopen_file) :: %d\n",file_length(tmp_aux->file));
 	// reopen을 한 파일은 예전 파일과 달라져있을 수 있어서 read byte를 다시 받는다?
 	uint32_t read_bytes = file_read_at(tmp_aux->file, kva, tmp_aux->read_bytes, tmp_aux->offset);
-	// printf("lazy_map :: read_bytes %d\n",read_bytes);
 	uint32_t zero_bytes = PGSIZE - read_bytes;
-	// printf("여기 들어옴 lazy map111\n");
 	memset(kva + read_bytes, 0, zero_bytes);
 	page->file.file = tmp_aux->file; // file 복제해서 썼으니 파일 갱신 
 	page->file.offset = tmp_aux->offset;

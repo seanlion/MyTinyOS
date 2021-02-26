@@ -20,6 +20,8 @@
         "filesys.h": "c",
         "file.h": "c",
         "syscall.h": "c",
-        "vm.h": "c"
+        "vm.h": "c",
+        "synch.h": "c",
+        "thread.h": "c"
     }
 }

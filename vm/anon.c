@@ -24,8 +24,8 @@ static struct bitmap *swap_table;
 void
 vm_anon_init (void) {
 	/* TODO: Set up the swap_disk. */
-	// printf("anon init 들어오나??\n");
 	swap_disk = disk_get(1, 1);
+	// printf("anon init :: swap_disk :: %p\n", swap_disk);
 	/* disk_size: SECTOR 단위로 반환
 	 * bitmap_create: PG 단위로 비트맵을 생성
 	 * 한 PG 당 8개의 SECTOR이기 때문에 8로 나눠줌 */

@@ -244,6 +244,7 @@ __do_fork (void *aux) {
 	process_activate (current);
 #ifdef VM
 	supplemental_page_table_init (&current->spt);
+	current->rsp = parent->rsp;
 	if (!supplemental_page_table_copy (&current->spt, &parent->spt))
 		goto error;
 #else
@@ -456,11 +457,11 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Open executable file. */
 	// 	프로그램의 파일을 open 할 때 file_deny_write() 함수를 호출
 	// 실행중인 파일 구조체를 thread 구조체에 추가
-	lock_acquire(&filesys_lock);
+	// lock_acquire(&filesys_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
 	file = filesys_open (file_name);
 	if (file == NULL) {
-		lock_release(&filesys_lock);
+		// lock_release(&filesys_lock);
         printf ("load: %s: open failed\n", file_name);
 		/*-------------------------- project.2-Denying write -----------------------------*/
 		goto done;
@@ -469,7 +470,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/*-------------------------- project.2-Denying write -----------------------------*/
 	t->running_file = file;
 	file_deny_write(t->running_file);
-	lock_release(&filesys_lock);
+	// lock_release(&filesys_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
 
 /* Read and verify executable header. */

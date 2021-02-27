@@ -144,13 +144,8 @@ verify (void)
 void
 parallel_merge (const char *child_name, int exit_status)
 {
-  printf("parallel_merge 11111111111\n");
   init ();
-  printf("parallel_merge 22222222222\n");
   sort_chunks (child_name, exit_status);
-  printf("parallel_merge 333333333333\n");
   merge ();
-  printf("parallel_merge 444444444444\n");
   verify ();
-  printf("parallel_merge 555555555555\n");
 }

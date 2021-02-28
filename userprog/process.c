@@ -168,7 +168,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
         if (child_t->fork_fail) {
             child_pid = -1;
         }
-    }	    
+    }
     // 자식이면 return 0, 부모이면 return child_pid
     return child_pid;
     /*-------------------------- project.2-Process  -----------------------------*/
@@ -235,7 +235,6 @@ __do_fork (void *aux) {
 	bool succ = true;
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
-
 	/* 2. Duplicate PT */
 	current->pml4 = pml4_create();
 	if (current->pml4 == NULL)
@@ -376,20 +375,25 @@ process_wait (tid_t child_tid UNUSED) {
     /* ----------------------------------- Project2.Process --------------------------------*/
     struct thread *child_t = get_child_process(child_tid);
     // printf('t_name : %d ', child_tid);
-    // printf("----------------------------------------------1\n");
+    // printf("process_wait 1\n");
     if (child_t == NULL) return -1;
-    // printf("----------------------------------------------2\n");
+    // printf("process_wait 2\n");
+
    	sema_down(&child_t->sema_exit);
-    // printf("----------------------------------------------3\n");
+    // printf("process_wait 3\n");
+
     if (child_t->is_exit) {
         int rtn_status = child_t->exit_status;
         remove_child_process(child_t);
-        // printf("----------------------------------------------4\n");
+        // printf("process_wait 4\n");
+
         return rtn_status;
     }
-    // printf("----------------------------------------------5\n");
+    // printf("process_wait 5\n");
+
     remove_child_process(child_t);
-    // printf("----------------------------------------------6\n");
+    // printf("process_wait 6\n");
+
     return -1;
     /* ----------------------------------- Project2.Process --------------------------------*/
 }
@@ -459,7 +463,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	// 실행중인 파일 구조체를 thread 구조체에 추가
 	// lock_acquire(&filesys_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
+	// printf("load에서 file_name은??? %s\n", file_name);
 	file = filesys_open (file_name);
+	// printf("load에서 file은? %p \n", file);
 	if (file == NULL) {
 		// lock_release(&filesys_lock);
         printf ("load: %s: open failed\n", file_name);
@@ -952,8 +958,13 @@ void process_exit(void) {
         process_close_file(t->next_fd);
 				
     }
+	// printf("어디까지 가는지111???\n");
     // palloc_free_page(t->fd_table);
     file_close(t->running_file);
+	// printf("어디까지 가는지222???\n");
     sema_up(&t->sema_exit);
+	// printf("어디까지 가는지333???\n");
     process_cleanup();
+	// printf("어디까지 가는지444???\n");
+
 }

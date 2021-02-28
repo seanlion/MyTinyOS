@@ -265,6 +265,7 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 			// 1MB Maximum 제한
 			// stack growth를 할 수 있다고 판단
 				{
+					// printf("stack growth 하기전 \n");
 					vm_stack_growth(addr);
 					return true;
 				}
@@ -336,10 +337,9 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 	// printf("spt lock acquire 함\n");
 	lock_acquire(&spt_lock);
 	// printf("supplemental_page_table_copy :: 111111111111111 \n");
-
-
 	hash_first(&i, &src->vm);
 	while (hash_next(&i)){
+		struct page *child_page;
 		// child hash에 들어갈 페이지를 부모 페이지를 가져옴.
 		struct page* parent_page = hash_entry(hash_cur(&i), struct page, hash_elem);
 		switch(parent_page->operations->type){
@@ -361,17 +361,20 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 			case VM_ANON:
 				// printf("supplemental_page_table_copy :: case 2 \n");
 				result = vm_alloc_page(parent_page->operations->type,parent_page->va, parent_page->writable);
-				// printf("supplemental_page_table_copy :: case 2 :: 11111111111111 \n");
+				child_page->mapping_id = parent_page->mapping_id;
+				child_page->anon.st_number = parent_page->anon.st_number;
+
 				if (result){
 					// printf("supplemental_page_table_copy :: case 2 :: 22222222222222 \n");
-					struct page *child_page = spt_find_page(&thread_current()->spt, parent_page->va );
+					child_page = spt_find_page(&thread_current()->spt, parent_page->va );
 					// printf("supplemental_page_table_copy :: case 2 :: 33333333333333 \n");
 					if (vm_do_claim_page(child_page) == 0){
 						// printf("supplemental_page_table_copy :: case 2 :: 444444444444444 \n");
 						return false ;
 						}
-					child_page->mapping_id = parent_page->mapping_id;
 					memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
+					// printf("copy에서 child_page frame->kva : %p\n",child_page->frame->kva);
+					// printf("copy에서  parent_page frame->kva : %p\n",parent_page->frame->kva);
 					// printf("supplemental_page_table_copy :: case 2 :: 55555555555555 \n");
 					}
 				break;
@@ -379,6 +382,12 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 			case VM_FILE:
 				// printf("supplemental_page_table_copy :: case 2 \n");
 				result = vm_alloc_page(parent_page->operations->type,parent_page->va, parent_page->writable);
+				child_page->mapping_id = parent_page->mapping_id;
+				child_page->file.file = parent_page->file.file;
+				child_page->file.offset = parent_page->file.offset;
+				child_page->file.read_bytes = parent_page->file.read_bytes;
+				child_page->file.zero_bytes = parent_page->file.zero_bytes;
+				child_page->file.writable = parent_page->file.writable;
 				// printf("supplemental_page_table_copy :: case 2 :: 11111111111111 \n");
 				if (result){
 					// printf("supplemental_page_table_copy :: case 2 :: 22222222222222 \n");
@@ -388,8 +397,9 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 						// printf("supplemental_page_table_copy :: case 2 :: 444444444444444 \n");
 						return false ;
 						}
-					child_page->mapping_id = parent_page->mapping_id;
 					memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
+					// printf("copy에서 child_page frame->kva : %p\n",child_page->frame->kva);
+					// printf("copy에서  child_page frame->kva : %p\n",parent_page->frame->kva);
 					// printf("supplemental_page_table_copy :: case 2 :: 55555555555555 \n");
 					}
 				break;
@@ -457,7 +467,7 @@ alloc_frame(void) {
 	add_frame_to_clock_list(frame);
 	return frame;
 }
-
+ 
 void 
 free_frame(void *kva) {
 	struct list_elem *e;

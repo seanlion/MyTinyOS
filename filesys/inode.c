@@ -74,25 +74,27 @@ inode_create (disk_sector_t sector, off_t length) {
 	/* If this assertion fails, the inode structure is not exactly
 	 * one sector in size, and you should fix that. */
 	ASSERT (sizeof *disk_inode == DISK_SECTOR_SIZE);
-
 	disk_inode = calloc (1, sizeof *disk_inode);
 	if (disk_inode != NULL) {
 		size_t sectors = bytes_to_sectors (length);
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
+		// printf("inode_create 어디서 나오나 111\n");
 		if (free_map_allocate (sectors, &disk_inode->start)) {
 			disk_write (filesys_disk, sector, disk_inode);
 			if (sectors > 0) {
 				static char zeros[DISK_SECTOR_SIZE];
 				size_t i;
-
+				// printf("inode_create 어디서 나오나 222\n");
 				for (i = 0; i < sectors; i++) 
 					disk_write (filesys_disk, disk_inode->start + i, zeros); 
 			}
 			success = true; 
 		} 
+		// printf("inode_create 어디서 나오나 333\n");
 		free (disk_inode);
 	}
+	// printf("inode_create 어디서 나오나 4444\n");
 	return success;
 }
 
@@ -235,10 +237,10 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 	const uint8_t *buffer = buffer_;
 	off_t bytes_written = 0;
 	uint8_t *bounce = NULL;
-
+	// printf("inode_write_at 에서 offset %d\n",offset);
 	if (inode->deny_write_cnt)
 		return 0;
-
+	// printf("inode_write_at  2222\n");
 	while (size > 0) {
 		/* Sector to write, starting byte offset within sector. */
 		disk_sector_t sector_idx = byte_to_sector (inode, offset);

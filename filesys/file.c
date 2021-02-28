@@ -15,15 +15,18 @@ struct file {
  * allocation fails or if INODE is null. */
 struct file *
 file_open (struct inode *inode) {
+	// printf("file_open에서 inode는?? %p\n",inode);
 	struct file *file = calloc (1, sizeof *file);
 	if (inode != NULL && file != NULL) {
 		file->inode = inode;
 		file->pos = 0;
 		file->deny_write = false;
+		// printf("file_open에서 여기111\n");
 		return file;
 	} else {
 		inode_close (inode);
 		free (file);
+		// printf("file_open에서 여기222\n");
 		return NULL;
 	}
 }

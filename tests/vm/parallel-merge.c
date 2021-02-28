@@ -46,11 +46,13 @@ sort_chunks (const char *subprocess, int exit_status)
       char fn[128];
       char cmd[128];
       int handle;
-
+      // printf("--------\n");
       msg ("sort chunk %zu", i);
-
       /* Write this chunk to a file. */
       snprintf (fn, sizeof fn, "buf%zu", i);
+      // printf(" for문 초반 fn은??? %s\n", fn);
+      // printf("for문 초반 cmd는?? %s\n", cmd);
+      // printf("어디서 터지나요00\n");
       create (fn, CHUNK_SIZE);
       quiet = true;
       // printf("어디서 터지나요11\n");
@@ -60,14 +62,12 @@ sort_chunks (const char *subprocess, int exit_status)
       close (handle);
       // printf("어디서 터지나요33\n");
       /* Sort with subprocess. */
-      // printf("cmd는?? %s\n", cmd);
       // printf("exit 이전??\n");
       snprintf (cmd, sizeof cmd, "%s %s", subprocess, fn);
-      // printf(" fn은??? %s\n", fn);
       // printf("exit 이후??\n");
       children[i] = fork (subprocess);
       // printf("children[i]는??? %d\n", children[i]);
-      // printf("어디서 터지나요4444\n"/);
+      // printf("어디서 터지나요4444\n");
       if (children[i] == 0)
       {
         // printf("----자식-----\n ");
@@ -75,6 +75,8 @@ sort_chunks (const char *subprocess, int exit_status)
         // printf("어디서 터지나요555\n");
         // printf("----자식-----\n ");
       }
+      // printf(" for문 후반 fn은??? %s\n", fn);
+      // printf("for문 후반 cmd는?? %s\n", cmd);
       quiet = false;
       // printf("----부모-----\n ");
     }
@@ -83,15 +85,16 @@ sort_chunks (const char *subprocess, int exit_status)
     {
       char fn[128];
       int handle;
-
       CHECK (wait (children[i]) == exit_status, "wait for child %zu", i);
 
       /* Read chunk back from file. */
       quiet = true;
       snprintf (fn, sizeof fn, "buf%zu", i);
+
       CHECK ((handle = open (fn)) > 1, "open \"%s\"", fn);
       read (handle, buf1 + CHUNK_SIZE * i, CHUNK_SIZE);
       close (handle);
+
       quiet = false;
     }
 }

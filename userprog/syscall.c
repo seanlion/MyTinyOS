@@ -211,6 +211,7 @@ void
 exit (int status) {
     // printf("hi\n");
 	struct thread *t = thread_current();
+    // printf("exit syscall에서 status는? %d", status);
     t->exit_status = status;
 	printf("%s: exit(%d)\n", t->name, status);
 	thread_exit();
@@ -219,10 +220,13 @@ exit (int status) {
 
 /*-------------------------- project.2-System call -----------------------------*/
 bool create(const char *file , unsigned initial_size) {
-	// printf("create\n");
-    if (file == NULL) exit(-1);
+	// printf("create 이다... %d\n", thread_current()->tid);
+    if (file == NULL) 
+        exit(-1);
     // lock_acquire(&filesys_lock);
-    bool result = (filesys_create (file, initial_size));
+    bool result = filesys_create (file, initial_size);
+    // printf("create에서 file이란?? %s\n", file);
+    // printf("create에서 result란?? %d\n", result);
     // lock_release(&filesys_lock);
     return result;
 }
@@ -269,6 +273,7 @@ int write(int fd, const void *buffer, unsigned size) {
 
 int open (const char *file) {
     // printf("file은??? %p\n",file);
+    // printf("open 이다... %d\n", thread_current()->tid);
    if (file)
     {
         struct file * open_file = filesys_open(file);

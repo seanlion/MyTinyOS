@@ -232,11 +232,7 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
         exit(-1);
     }
 	// printf("vm try handle fault진입111 \n");
-    if (addr == NULL) {
-        exit(-1);
-    }
-	// printf("vm try handle fault진입222 \n");
-    if (addr == 0) {
+    if (addr == NULL || addr == 0) {
         exit(-1);
     }
 	// printf("vm try handle fault진입 333\n");
@@ -255,21 +251,24 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 			if(!not_present&&is_user_vaddr(addr))
 				exit(-1);
 			// printf("vm try handle fault진입5555 \n");
-			if((!(page->writable)) && write)
+			if(((page->writable) == 0) && write)
 				exit(-1);
 			// printf("vm try handle fault진입6666 \n");
 			// printf("try handle fault 들어오나???\n");
 			return vm_do_claim_page (page);
 		}
 	else {
-		if (pg_no(USER_STACK) - 250 <= pg_no(addr) || (t_rsp) - (uintptr_t)addr == 8 || addr < t_rsp) // page-merge-stk 성공 왔다갔다 하는 버전
-		// printf("t_rsp와 addr 찍어보기 %p, %p\n", t_rsp, addr);
-		// if(((uint64_t)addr > t_rsp - PGSIZE ) && (pg_no(USER_STACK) - pg_no(addr)) <= 250 && addr > t_rsp) // page-merge-stk 성공 버전
-		// 1MB Maximum 제한
-		// stack growth를 할 수 있다고 판단
-		{
-			vm_stack_growth(addr);
-			return true;
+		if ((user && write)){
+			if (pg_no(USER_STACK) - 256 <= pg_no(addr) || (t_rsp) - (uintptr_t)addr == 8 || addr < t_rsp) // page-merge-stk 성공 왔다갔다 하는 버전
+				
+			// printf("t_rsp와 addr 찍어보기 %p, %p\n", t_rsp, addr);
+			// if(((uint64_t)addr > t_rsp - PGSIZE ) && (pg_no(USER_STACK) - pg_no(addr)) <= 250 && addr > t_rsp) // page-merge-stk 성공 버전
+			// 1MB Maximum 제한
+			// stack growth를 할 수 있다고 판단
+				{
+					vm_stack_growth(addr);
+					return true;
+				}
 		}
 		return false;
 	}

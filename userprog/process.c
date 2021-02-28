@@ -953,7 +953,7 @@ void process_exit(void) {
 				
     }
     // palloc_free_page(t->fd_table);
-    // file_close(t->running_file);
+    file_close(t->running_file);
     sema_up(&t->sema_exit);
     process_cleanup();
 }

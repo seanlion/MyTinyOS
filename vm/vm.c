@@ -261,7 +261,6 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 		if ((user && write)){
 			if (pg_no(USER_STACK) - 256 <= pg_no(addr) || (t_rsp) - (uintptr_t)addr == 8 || addr < t_rsp) // page-merge-stk 성공 왔다갔다 하는 버전
 				
-			// printf("t_rsp와 addr 찍어보기 %p, %p\n", t_rsp, addr);
 			// if(((uint64_t)addr > t_rsp - PGSIZE ) && (pg_no(USER_STACK) - pg_no(addr)) <= 250 && addr > t_rsp) // page-merge-stk 성공 버전
 			// 1MB Maximum 제한
 			// stack growth를 할 수 있다고 판단
@@ -448,7 +447,8 @@ add_frame_to_clock_list(struct frame *frame) {
 
 void
 del_frame_to_clock_list(struct frame *frame) {
-	list_remove(&frame->list_elem);
+	if (!list_empty(&clock_list))
+		list_remove(&frame->list_elem);
 }
 
 struct frame*
@@ -470,13 +470,16 @@ free_frame(void *kva) {
 		}
 		e = list_next(e);
 	}
+	// printf("free_frame 마지막\n ");
 	return;
 }
 
 void 
 __free_page(struct frame *frame) {
 	del_frame_to_clock_list(frame);
+	// printf("__free_page 1111\n");
 	// free(frame);
+	// printf("__free_page 2222\n");
 }
 
 struct list_elem*

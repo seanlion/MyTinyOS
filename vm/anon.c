@@ -100,6 +100,13 @@ anon_swap_out (struct page *page) {
 static void
 anon_destroy (struct page *page) {
 	// printf("anon_destroy이 작동?\n");
+	// printf("anon destroy 여기서 터지나1111???\n");
 	struct anon_page *anon_page = &page->anon;
-	free_frame(page->frame->kva);
+	// printf("anon destroy 여기서 터지나222???\n");
+	// printf("frame kva?? %p\n", page->frame->kva);
+	// if (page->frame != NULL)
+		// free_frame(page->frame->kva);
+	free(page->frame);
+	// printf("anon destroy 여기서 터지나3333???\n");
+
 }

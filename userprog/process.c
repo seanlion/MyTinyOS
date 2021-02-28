@@ -957,4 +957,3 @@ void process_exit(void) {
     sema_up(&t->sema_exit);
     process_cleanup();
 }
-/*-------------------------- project.2-System Call -----------------------------*/

@@ -103,6 +103,7 @@ spt_find_page (struct supplemental_page_table *spt, void *va) {
 	// /* TODO: Fill this function. */
 	page.va = pg_round_down(va);
 	e = hash_find(&spt->vm, &page.hash_elem);
+	// printf("spt_find_page 들어옴\n");
 	return e != NULL ? hash_entry(e, struct page, hash_elem) : NULL;
 }
 
@@ -205,6 +206,9 @@ vm_get_frame (void) {
 /* Growing the stack. */
 static void
 vm_stack_growth (void *addr) {
+	if (!is_user_vaddr(addr)){ // bad read 방지
+		exit(-1);
+	}
 	addr = pg_round_down(addr);
 	while (vm_alloc_page(VM_MARKER_0 | VM_ANON, addr, true)) {
 		vm_claim_page(addr);
@@ -223,16 +227,19 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 		bool user, bool write, bool not_present) {
 	struct supplemental_page_table *spt = &thread_current ()->spt;
 	struct page *page = NULL;
+	// printf("vm try handle fault진입 \n");
     if (write && !not_present) {
         exit(-1);
     }
+	// printf("vm try handle fault진입111 \n");
     if (addr == NULL) {
         exit(-1);
     }
+	// printf("vm try handle fault진입222 \n");
     if (addr == 0) {
         exit(-1);
     }
-
+	// printf("vm try handle fault진입 333\n");
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 	uintptr_t t_rsp = NULL;
@@ -242,35 +249,29 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 	else{ // user에서 넘어오는거
 		t_rsp = f->rsp;
 	}
+	
 	page = spt_find_page(spt, addr);
-	if(page==NULL){
+	if(page!=NULL){
+			if(!not_present&&is_user_vaddr(addr))
+				exit(-1);
+			// printf("vm try handle fault진입5555 \n");
+			if((!(page->writable)) && write)
+				exit(-1);
+			// printf("vm try handle fault진입6666 \n");
+			// printf("try handle fault 들어오나???\n");
+			return vm_do_claim_page (page);
+		}
+	else {
+		if (pg_no(USER_STACK) - 250 <= pg_no(addr) || (t_rsp) - (uintptr_t)addr == 8 || addr < t_rsp) // page-merge-stk 성공 왔다갔다 하는 버전
+		// printf("t_rsp와 addr 찍어보기 %p, %p\n", t_rsp, addr);
+		// if(((uint64_t)addr > t_rsp - PGSIZE ) && (pg_no(USER_STACK) - pg_no(addr)) <= 250 && addr > t_rsp) // page-merge-stk 성공 버전
+		// 1MB Maximum 제한
 		// stack growth를 할 수 있다고 판단
-		if(	(t_rsp) - (uintptr_t)addr == 8 \ 
-			&& 
-			(pg_no(USER_STACK) - 250 <= pg_no(addr)) // 1MB Maximum 제한
-			)
 		{
 			vm_stack_growth(addr);
 			return true;
 		}
-		else{
-			return false;
-		}
-	}
-	else {
-		if(!not_present&&is_user_vaddr(addr))
-			exit(-1);
-
-		if((!(page->writable)) && write)
-			exit(-1);
-
-		// if(VM_TYPE(page->operations->type) == VM_ANON || VM_TYPE(page->operations->type) == VM_FILE) {
-		// 	struct frame *frame = vm_evict_frame();
-		// 	page->frame = frame;
-		// 	return swap_in(page, frame->kva);
-		// }
-		// printf("try handle fault 들어오나???\n");
-		return vm_do_claim_page (page);
+		return false;
 	}
 
 }
@@ -287,7 +288,7 @@ vm_dealloc_page (struct page *page) {
 bool
 vm_claim_page (void *va) {
 	struct page *page = NULL;
-	
+	// printf("vm claim page에서 받은 upage %p\n", va);
 	/* TODO: Fill this function */
 	struct thread *t = thread_current();
 	page = spt_find_page(&t->spt, va);
@@ -334,7 +335,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 	bool result = false;
 	struct load_aux *aux_child;
 	struct hash_iterator i;
-
+	// printf("spt lock acquire 함\n");
 	lock_acquire(&spt_lock);
 	// printf("supplemental_page_table_copy :: 111111111111111 \n");
 

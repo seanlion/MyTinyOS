@@ -22,6 +22,8 @@
         "syscall.h": "c",
         "vm.h": "c",
         "synch.h": "c",
-        "thread.h": "c"
+        "thread.h": "c",
+        "algorithm": "c",
+        "disk.h": "c"
     }
 }

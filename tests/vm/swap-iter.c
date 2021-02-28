@@ -32,12 +32,13 @@ test_main (void)
 
     CHECK ((handle = open ("large.txt")) > 1, "open \"large.txt\"");
     CHECK ((map = mmap (actual, sizeof(large), 0, handle, 0)) != MAP_FAILED, "mmap \"large.txt\"");
-
+    // printf("mmap 리턴값 주소 %p\n", map);
+    // printf("iter 테케에서 mmap 끝\n");
     /* Read in file map'd page */
     if (memcmp (actual, large, strlen (large)))
         fail ("read of mmap'd file reported bad data");
 
-
+    printf("iter 테케에서 memcmp 통과\n");
     /* Read in anon page */
     for (i = 0; i < PAGE_COUNT; i++) {
         if (big_chunks[i*PAGE_SIZE] != (char) i)

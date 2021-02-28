@@ -53,16 +53,30 @@ sort_chunks (const char *subprocess, int exit_status)
       snprintf (fn, sizeof fn, "buf%zu", i);
       create (fn, CHUNK_SIZE);
       quiet = true;
+      // printf("어디서 터지나요11\n");
       CHECK ((handle = open (fn)) > 1, "open \"%s\"", fn);
       write (handle, buf1 + CHUNK_SIZE * i, CHUNK_SIZE);
+      // printf("어디서 터지나요22\n");
       close (handle);
-
+      // printf("어디서 터지나요33\n");
       /* Sort with subprocess. */
+      // printf("cmd는?? %s\n", cmd);
+      // printf("exit 이전??\n");
       snprintf (cmd, sizeof cmd, "%s %s", subprocess, fn);
+      // printf(" fn은??? %s\n", fn);
+      // printf("exit 이후??\n");
       children[i] = fork (subprocess);
+      // printf("children[i]는??? %d\n", children[i]);
+      // printf("어디서 터지나요4444\n"/);
       if (children[i] == 0)
+      {
+        // printf("----자식-----\n ");
         CHECK ((children[i] = exec (cmd)) != -1, "exec \"%s\"", cmd);
+        // printf("어디서 터지나요555\n");
+        // printf("----자식-----\n ");
+      }
       quiet = false;
+      // printf("----부모-----\n ");
     }
 
   for (i = 0; i < CHUNK_CNT; i++)

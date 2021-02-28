@@ -52,6 +52,9 @@ pid_t fork (const char *);
 /*-------------------------- project.2-System call -----------------------------*/
 void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
 void munmap (void *addr);
+void check_user(void* addr,struct intr_frame *f );
+void check_user_write(void* addr,struct intr_frame *f );
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -127,6 +130,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
         }
         case SYS_READ: {
+            check_address(f->R.rdi);
+			// check_user(f->R.rdi, f);
             f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
             break;
         }
@@ -179,7 +184,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 void
 check_address(void *addr) {
 	/*-------------------------- project.2-System call -----------------------------*/
-	if (is_kernel_vaddr(addr))
+    // pt-bad-read 잡기 위해 테스트 - 성공
+	if (is_kernel_vaddr(addr) 
+        || 
+        (uint64_t)addr ==0x0 
+        || 
+        addr ==NULL
+        // ||
+        // pml4e_walk(thread_current()->pml4,addr,false)==NULL
+        )
     {
         exit(-1);
     }
@@ -255,6 +268,7 @@ int write(int fd, const void *buffer, unsigned size) {
 /*-------------------------- project.2-System call -----------------------------*/
 
 int open (const char *file) {
+    // printf("file은??? %p\n",file);
    if (file)
     {
         struct file * open_file = filesys_open(file);
@@ -306,19 +320,29 @@ int exec(const char *file){
 int read (int fd, void*buffer, unsigned size) {
     // printf("readfd=%d\n", fd);
     lock_acquire(&filesys_lock);
+    char* rd_buf = (char *)buffer;
     struct file *f = process_get_file(fd);
-    int cur_size = -1;
-    if (f){
-        if (fd == 0) {
-            cur_size = input_getc();
-        }
-        else {
-            cur_size = file_read(f, buffer, size);
-        }
+    int cur_size = 0;
+    struct page *page = spt_find_page(&thread_current()->spt, rd_buf);
+    if(page->writable == 0){ // pt-write-code2 예외처리
+        exit(-1);
+    }
+    if (fd == 0) {
+            rd_buf[cur_size] = input_getc();
+            while(cur_size<size && rd_buf[cur_size]!='\n'){
+                cur_size +=1;
+                rd_buf[cur_size] = input_getc();
+		    }
+		    rd_buf[cur_size] = '\0';
     }
     else {
-        lock_release(&filesys_lock);
-        return -1;
+        if (f){
+            cur_size = file_read(f, buffer, size);
+            // printf("read할 때 나오는 cur_size %d\n", cur_size);
+        }
+        else {
+            cur_size =  -1;
+        }
     }
     lock_release(&filesys_lock);
     return cur_size;
@@ -410,4 +434,17 @@ void munmap (void *addr){
     lock_release(&filesys_lock);
 }
 
-/*-------------------------- project.3-map,unmap -----------------------------*/
+// pt-bad-read 잡기 위해 테스트 - 정확히 이 함수들로 pass하진 않음.
+void check_user(void* addr,struct intr_frame *f ){
+	struct page *p = spt_find_page(&thread_current()->spt, addr);
+	if( addr < pg_round_down(f->rsp) && p==NULL ){
+		exit(-1);
+	}
+} 
+// void check_user_write(void* addr,struct intr_frame *f ){
+// 	struct page *p = spt_find_page(&thread_current()->spt, addr);
+// 	if(!p->writable){
+// 		//printf("3\n");
+// 		exit(-1);
+// 	}
+// }

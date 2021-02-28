@@ -125,6 +125,8 @@ tests/vm/swap-anon.output: SWAP_DISK = 30
 tests/vm/swap-anon.output: MEMORY = 10
 tests/vm/swap-file.output: SWAP_DISK = 10
 tests/vm/swap-file.output: MEMORY = 10
+# 2.27 swap iter TIMEOUT 길게 설정
+# tests/vm/swap-iter.output: TIMEOUT = 500
 tests/vm/swap-iter.output: SWAP_DISK = 50
 tests/vm/swap-iter.output: MEMORY = 10
 tests/vm/swap-fork.output: SWAP_DISK = 200

@@ -44,7 +44,7 @@ uninit_new (struct page *page, void *va, vm_initializer *init, enum vm_type type
 static bool
 uninit_initialize (struct page *page, void *kva) {
 	struct uninit_page *uninit = &page->uninit;
-
+	// printf("uninit_initialize이 작동?\n");
 	/* Fetch first, page_initialize may overwrite the values */
 	vm_initializer *init = uninit->init;
 	void *aux = uninit->aux;
@@ -65,5 +65,6 @@ uninit_destroy (struct page *page) {
 	/* TODO: Fill this function.
 	 * TODO: If you don't have anything to do, just return. */
 	// free(uninit->aux);
+	// printf("uninit_destroy이 작동?\n");
 	return;
 }

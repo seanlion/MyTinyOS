@@ -195,6 +195,7 @@ disk_get (int chan_no, int dev_no) {
    sectors. */
 disk_sector_t
 disk_size (struct disk *d) {
+	// printf("d는??? %p\n",d);
 	ASSERT (d != NULL);
 
 	return d->capacity;

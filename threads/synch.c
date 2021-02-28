@@ -60,6 +60,7 @@ sema_init (struct semaphore *sema, unsigned value) {
    sema_down function. */
 void
 sema_down (struct semaphore *sema) {
+	// printf("sema down 한다???\n");
 	enum intr_level old_level;
 
 	ASSERT (sema != NULL);
@@ -109,6 +110,7 @@ sema_try_down (struct semaphore *sema) {
 void
 sema_up (struct semaphore *sema) {
 	enum intr_level old_level;
+	// printf("sema up 한다???\n");
 
 	ASSERT (sema != NULL);
 
@@ -201,7 +203,6 @@ lock_acquire (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
-
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	struct thread *t = thread_current();
 	if (lock->holder != NULL)

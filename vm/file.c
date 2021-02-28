@@ -28,6 +28,7 @@ vm_file_init (void) {
 bool
 file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 	/* Set up the handler */
+	// printf("file_backed_initializer이 작동?\n");
 	page->operations = &file_ops;
 	struct file_page *file_page = &page->file;
 	return true;
@@ -37,14 +38,14 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
 	struct file_page *file_page = &page->file;
-
-	// lock_acquire(&filesys_lock);
+	// printf("file_backed swap in이 작동?\n");
+	lock_acquire(&filesys_lock);
 
 	uint32_t read_bytes = file_read_at(file_page->file, kva, file_page->read_bytes, file_page->offset);
 	uint32_t zero_bytes = PGSIZE - read_bytes;
 	memset(kva + read_bytes, 0, zero_bytes);
 
-	// lock_release(&filesys_lock);
+	lock_release(&filesys_lock);
 	return true;
 }
 
@@ -53,8 +54,8 @@ static bool
 file_backed_swap_out (struct page *page) {
 	struct file_page *file_page = &page->file;
 	struct thread *t = thread_current();
-
-	// lock_acquire(&filesys_lock);
+	// printf("file_backed swap out이 작동?\n");
+	lock_acquire(&filesys_lock);
 	
 	if (pml4_is_dirty(t->pml4, page->va) && page->frame != NULL) {
 		// 디스크에 있는 파일에 변경사항 있으면 반영
@@ -62,7 +63,7 @@ file_backed_swap_out (struct page *page) {
 		pml4_set_dirty(t->pml4, page->va, false);
 	}
 
-	// lock_release(&filesys_lock);
+	lock_release(&filesys_lock);
 
 	return true;
 }
@@ -92,7 +93,7 @@ do_mmap (void *addr, size_t length, int writable,
 	if (length <= 0){
         return NULL;
 	}
-
+	// printf("mmap 부분 1111\n");
 	// mmap overlap 예외처리
 	void* overlap_addr = addr+length;
 	void* std_addr = addr;
@@ -125,7 +126,7 @@ do_mmap (void *addr, size_t length, int writable,
 		}
 
 	}
-
+	// printf("mmap 부분 file reopen 전111 \n");
 	struct file* reopen_file = file_reopen(file);
 
 	while (read_bytes > 0 || zero_bytes > 0) {
@@ -154,6 +155,8 @@ do_mmap (void *addr, size_t length, int writable,
 		addr += PGSIZE;
 	}
 	// printf("여기 들어옴 do map222\n");
+	// printf("mmap 부분 22222\n");
+	// printf("mmap 부분 마지막쪽 \n");
 
 	return mmap_addr;
 }
@@ -164,7 +167,7 @@ static bool
 lazy_map (struct page *page, void *aux){
 	// printf("lazy_map :: addr :: %p\n",page);
 	struct file_aux *tmp_aux = (struct file_aux *)aux;
-
+	// printf("lazy map 들어왔다!!\n");
 	if(page->frame == NULL){
 		return false;
 	}
@@ -173,7 +176,9 @@ lazy_map (struct page *page, void *aux){
 	// reopen을 한 파일은 예전 파일과 달라져있을 수 있어서 read byte를 다시 받는다?
 	uint32_t read_bytes = file_read_at(tmp_aux->file, kva, tmp_aux->read_bytes, tmp_aux->offset);
 	uint32_t zero_bytes = PGSIZE - read_bytes;
+	// printf("lazy map 들어왔다222!!\n");
 	memset(kva + read_bytes, 0, zero_bytes);
+	// printf("lazy map 들어왔다333!!\n");
 	page->file.file = tmp_aux->file; // file 복제해서 썼으니 파일 갱신 
 	page->file.offset = tmp_aux->offset;
 	page->file.read_bytes = read_bytes;

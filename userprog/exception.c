@@ -153,21 +153,27 @@ page_fault (struct intr_frame *f) {
 
 
     /*-------------------------- project.2-System Call -----------------------------*/
+	// printf("page fault 났나? 어디서?111\n");
     if (user == 0 || !(is_user_vaddr(fault_addr))) {
         exit(-1);
     }
     // if (write == 1) {
     //     exit(-1);
     // }
+	// printf("page fault 났나? 어디서?222\n");
+	// printf("not present는??? %d\n", not_present);
     if (not_present == 1) {
         exit(-1);
     }
+	// printf("page fault 났나? 어디서?333\n");
     if (fault_addr == NULL) {
         exit(-1);
     }
+	// printf("page fault 났나? 어디서?444\n");
     if (fault_addr == 0) {
         exit(-1);
     }
+	// printf("page fault 났나? 어디서?555\n");
     /*-------------------------- project.2-System Call -----------------------------*/
 
 

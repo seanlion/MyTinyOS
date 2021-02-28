@@ -45,7 +45,7 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the swap disk. */
 static bool
 anon_swap_in (struct page *page, void *kva) {
-
+	// printf("anon_swap_in이 작동?\n");
 	// lock_acquire(&clock_list_lock);
 	struct anon_page *anon_page = &page->anon;
 	size_t number = anon_page->st_number;
@@ -72,7 +72,7 @@ anon_swap_in (struct page *page, void *kva) {
 static bool
 anon_swap_out (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
-
+	// printf("anon_swap_out이 작동?\n");
 	// lock_acquire(&clock_list_lock);
 	
 	// false는 비어있음, true는 들어있음
@@ -99,6 +99,7 @@ anon_swap_out (struct page *page) {
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
 static void
 anon_destroy (struct page *page) {
+	// printf("anon_destroy이 작동?\n");
 	struct anon_page *anon_page = &page->anon;
 	free_frame(page->frame->kva);
 }

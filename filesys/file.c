@@ -21,12 +21,12 @@ file_open (struct inode *inode) {
 		file->inode = inode;
 		file->pos = 0;
 		file->deny_write = false;
-		// printf("file_open에서 여기111\n");
+		// printf("file_open에서 file return\n");
 		return file;
 	} else {
 		inode_close (inode);
 		free (file);
-		// printf("file_open에서 여기222\n");
+		// printf("file_open에서 null return\n");
 		return NULL;
 	}
 }

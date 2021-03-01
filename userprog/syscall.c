@@ -22,8 +22,6 @@
 #include "intrinsic.h"
 #include "userprog/process.h"
 #include "devices/input.h"
-#include "filesys/filesys.h"
-#include "filesys/file.h"
 #include "lib/kernel/console.h"
 /*-------------------------- project.2-System call -----------------------------*/
 void syscall_entry (void);
@@ -211,23 +209,26 @@ void
 exit (int status) {
     // printf("hi\n");
 	struct thread *t = thread_current();
+    if(lock_held_by_current_thread(&filesys_lock))
+		lock_release(&filesys_lock);
     // printf("exit syscall에서 status는? %d", status);
     t->exit_status = status;
 	printf("%s: exit(%d)\n", t->name, status);
 	thread_exit();
 }
-/*-------------------------- project.2-System call -----------------------------*/
+/*-------------------------- project.2-System call -----------------------------*/ 
 
 /*-------------------------- project.2-System call -----------------------------*/
 bool create(const char *file , unsigned initial_size) {
 	// printf("create 이다... %d\n", thread_current()->tid);
     if (file == NULL) 
         exit(-1);
-    // lock_acquire(&filesys_lock);
+    // printf("create에서 file inode 확인 %p\n", file->inode);
+    lock_acquire(&filesys_lock);
     bool result = filesys_create (file, initial_size);
-    // printf("create에서 file이란?? %s\n", file);
     // printf("create에서 result란?? %d\n", result);
     // lock_release(&filesys_lock);
+    lock_release(&filesys_lock);
     return result;
 }
 /*-------------------------- project.2-System call -----------------------------*/
@@ -275,15 +276,28 @@ int open (const char *file) {
     // printf("file은??? %p\n",file);
     // printf("open 이다... %d\n", thread_current()->tid);
    if (file)
-    {
+    {   
+        // printf("open에 들어왔다!!! 111\n");
+        lock_acquire(&filesys_lock);
+        // printf("open에 들어왔다!!! 222\n");
         struct file * open_file = filesys_open(file);
+        // printf("open에 들어왔다!!! 333\n");
+
+        // printf("open 시스템 콜에서 file은? %p\n", open_file);
         if (open_file)
         {
+            if(!strcmp(file,thread_current()->name))
+		        {
+                    file_deny_write(open_file); 
+                }
             int result = process_add_file(open_file);
+            // printf("open에 들어왔다!!! 4444\n");
+            lock_release(&filesys_lock);
             return result;
         }
         else
         {
+            lock_release(&filesys_lock);
             return -1;
         }
     }
@@ -298,15 +312,18 @@ int open (const char *file) {
 
 /*-------------------------- project.2-System call -----------------------------*/
 int filesize(int fd) {
+    lock_acquire(&filesys_lock);
     struct file *want_length_file = process_get_file(fd);
     int ret =-1;
     if (want_length_file)
     {
         ret = file_length(want_length_file);
+        lock_release(&filesys_lock);
         return ret; /* ASSERT (NULL), so we need to branch out */
     }
     else
     {
+        lock_release(&filesys_lock);
         return ret;
     }
 }
@@ -324,7 +341,6 @@ int exec(const char *file){
 /*-------------------------- project.2-System call -----------------------------*/
 int read (int fd, void*buffer, unsigned size) {
     // printf("readfd=%d\n", fd);
-    lock_acquire(&filesys_lock);
     char* rd_buf = (char *)buffer;
     struct file *f = process_get_file(fd);
     int cur_size = 0;
@@ -341,6 +357,7 @@ int read (int fd, void*buffer, unsigned size) {
 		    rd_buf[cur_size] = '\0';
     }
     else {
+        lock_acquire(&filesys_lock);
         if (f){
             cur_size = file_read(f, buffer, size);
             // printf("read할 때 나오는 cur_size %d\n", cur_size);
@@ -355,15 +372,19 @@ int read (int fd, void*buffer, unsigned size) {
 /*-------------------------- project.2-System call -----------------------------*/
 
 void seek(int fd, unsigned position){
+    lock_acquire(&filesys_lock);
     struct file *target = process_get_file(fd);
     file_seek(target, position);
+    lock_release(&filesys_lock);
 } 
 
 
 
 unsigned tell(int fd){
+    lock_acquire(&filesys_lock);
     struct file *target = process_get_file(fd);
     unsigned result = file_tell(target);
+    lock_release(&filesys_lock);
     return result;
 }
 
@@ -371,7 +392,9 @@ unsigned tell(int fd){
 
 
 void close(int fd){
+    lock_acquire(&filesys_lock);
     process_close_file(fd);
+    lock_release(&filesys_lock);
 }
 
 /*-------------------------- project.2-Process -----------------------------*/
@@ -389,6 +412,7 @@ int wait(pid_t pid) {
 /*-------------------------- project.2-Process -----------------------------*/
 pid_t fork (const char *thread_name) {
     struct intr_frame *cur_if = &thread_current()->fork_tf;
+    // printf("fork systemcall에서 하는 thread_name %s\n", thread_name);
     pid_t result = process_fork (thread_name, cur_if);
     return result;
 }
@@ -422,7 +446,7 @@ void *mmap (void *addr, size_t length, int writable, int fd, off_t offset){
         return NULL;
     }
     // printf("여기 들어와야 함 mmap 전\n");
-    if (!lock_held_by_current_thread(&filesys_lock));
+    if (!lock_held_by_current_thread(&filesys_lock)); /*if에 안걸리면 lock release만 되길래 주석 처리*/
         lock_acquire(&filesys_lock);
     void* addr_mmap = do_mmap (addr,length, writable, file_mmap, offset);
     lock_release(&filesys_lock);

@@ -191,7 +191,6 @@ vm_get_frame (void) {
 		lock_acquire(&clock_list_lock);
 		frame = vm_evict_frame();
 		lock_release(&clock_list_lock);
-		
 	}
 	// printf("vm_get_frame 들어오는데 evict 이후\n");
 
@@ -372,6 +371,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 						// printf("supplemental_page_table_copy :: case 2 :: 444444444444444 \n");
 						return false ;
 						}
+					// memmove(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
 					memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
 					// printf("copy에서 child_page frame->kva : %p\n",child_page->frame->kva);
 					// printf("copy에서  parent_page frame->kva : %p\n",parent_page->frame->kva);
@@ -398,6 +398,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 						return false ;
 						}
 					memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
+					// memmove(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
 					// printf("copy에서 child_page frame->kva : %p\n",child_page->frame->kva);
 					// printf("copy에서  child_page frame->kva : %p\n",parent_page->frame->kva);
 					// printf("supplemental_page_table_copy :: case 2 :: 55555555555555 \n");

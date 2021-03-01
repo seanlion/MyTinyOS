@@ -50,14 +50,15 @@ sort_chunks (const char *subprocess, int exit_status)
       msg ("sort chunk %zu", i);
       /* Write this chunk to a file. */
       snprintf (fn, sizeof fn, "buf%zu", i);
-      // printf(" for문 초반 fn은??? %s\n", fn);
       // printf("for문 초반 cmd는?? %s\n", cmd);
-      // printf("어디서 터지나요00\n");
+      // printf("parallel-merge create 전 \n");
+      // printf(" create하는 fn은??? %s\n", fn);
       create (fn, CHUNK_SIZE);
       quiet = true;
-      // printf("어디서 터지나요11\n");
+      // printf("parallel-merge create 후 \n");
       CHECK ((handle = open (fn)) > 1, "open \"%s\"", fn);
       write (handle, buf1 + CHUNK_SIZE * i, CHUNK_SIZE);
+      // printf("parallel-merge open 후 \n");
       // printf("어디서 터지나요22\n");
       close (handle);
       // printf("어디서 터지나요33\n");
@@ -67,16 +68,17 @@ sort_chunks (const char *subprocess, int exit_status)
       // printf("exit 이후??\n");
       children[i] = fork (subprocess);
       // printf("children[i]는??? %d\n", children[i]);
-      // printf("어디서 터지나요4444\n");
+      // printf("parallel-merge fork \n");
       if (children[i] == 0)
       {
         // printf("----자식-----\n ");
+        // printf("parallel-merge exec 전 \n");
+        // printf("parallel-merge에서 exec 하는 cmd는? %s\n", cmd);
         CHECK ((children[i] = exec (cmd)) != -1, "exec \"%s\"", cmd);
-        // printf("어디서 터지나요555\n");
+        // printf("parallel-merge exec 후 \n");
         // printf("----자식-----\n ");
       }
       // printf(" for문 후반 fn은??? %s\n", fn);
-      // printf("for문 후반 cmd는?? %s\n", cmd);
       quiet = false;
       // printf("----부모-----\n ");
     }

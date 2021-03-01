@@ -39,13 +39,13 @@ static bool
 file_backed_swap_in (struct page *page, void *kva) {
 	struct file_page *file_page = &page->file;
 	// printf("file_backed swap in이 작동?\n");
-	lock_acquire(&filesys_lock);
-
+	// lock_acquire(&filesys_lock);
+	/*file seek를 안해서 그런거 아닐까?*/
 	uint32_t read_bytes = file_read_at(file_page->file, kva, file_page->read_bytes, file_page->offset);
 	uint32_t zero_bytes = PGSIZE - read_bytes;
 	memset(kva + read_bytes, 0, zero_bytes);
 
-	lock_release(&filesys_lock);
+	// lock_release(&filesys_lock);
 	return true;
 }
 
@@ -55,7 +55,7 @@ file_backed_swap_out (struct page *page) {
 	struct file_page *file_page = &page->file;
 	struct thread *t = thread_current();
 	// printf("file_backed swap out이 작동?\n");
-	lock_acquire(&filesys_lock);
+	// lock_acquire(&filesys_lock);
 	
 	if (pml4_is_dirty(t->pml4, page->va) && page->frame != NULL) {
 		// 디스크에 있는 파일에 변경사항 있으면 반영
@@ -63,7 +63,7 @@ file_backed_swap_out (struct page *page) {
 		pml4_set_dirty(t->pml4, page->va, false);
 	}
 
-	lock_release(&filesys_lock);
+	// lock_release(&filesys_lock);
 
 	return true;
 }
@@ -81,8 +81,9 @@ file_backed_destroy (struct page *page) {
 		// 디스크에 있는 파일에 변경사항 있으면 반영
 		file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
 	}
-
+	palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
 	free(page->frame);
+
 }
 
 /* Do the mmap */
@@ -145,7 +146,7 @@ do_mmap (void *addr, size_t length, int writable,
 		tmp_aux->mapping_id = map_id;
 		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_map, tmp_aux) )
 			{
-				// free(tmp_aux);
+				free(tmp_aux);
 				return NULL;
 			}
 

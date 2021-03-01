@@ -90,7 +90,7 @@ anon_swap_out (struct page *page) {
 	// swap_table에 해당 number 공간을 비웠다고 적기
 	bitmap_set(swap_table, number, true);
 	page->frame = NULL;
-
+ 	/**/
 	// lock_release(&clock_list_lock);
 
 	return true;
@@ -106,6 +106,7 @@ anon_destroy (struct page *page) {
 	// printf("frame kva?? %p\n", page->frame->kva);
 	// if (page->frame != NULL)
 		// free_frame(page->frame->kva);
+	palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
 	free(page->frame);
 	// printf("anon destroy 여기서 터지나3333???\n");
 

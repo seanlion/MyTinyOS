@@ -769,9 +769,12 @@ void thread_awake(int64_t ticks)
 /*-------------------------- project.1-Priority Scheduling -----------------------------*/
 bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
+	// printf("cmp_priority 1111\n");
 	struct thread *t_a = list_entry(a, struct thread, elem);
+	// printf("cmp_priority 2222\n");
 	struct thread *t_b = list_entry(b, struct thread, elem);
-	
+	// printf("cmp_priority 3333\n");
+
 	return t_a->priority > t_b->priority;
 }
 

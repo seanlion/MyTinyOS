@@ -288,8 +288,6 @@ int
 process_exec (void *f_name) {
     /*-------------------------- project.2-Parsing -----------------------------*/
 	char *file_name = f_name;
-    // char *file_name = palloc_get_page(PAL_ZERO);
-
     char *file_static_name[48];
     memcpy(file_static_name, file_name, strlen(file_name)+1);
 	if (file_static_name == NULL)
@@ -461,7 +459,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Open executable file. */
 	// 	프로그램의 파일을 open 할 때 file_deny_write() 함수를 호출
 	// 실행중인 파일 구조체를 thread 구조체에 추가
-	// lock_acquire(&filesys_lock);
+	lock_acquire(&filesys_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
 	// printf("load에서 file_name은??? %s\n", file_name);
 	file = filesys_open (file_name);
@@ -475,7 +473,7 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/*-------------------------- project.2-Denying write -----------------------------*/
 	t->running_file = file;
-	file_deny_write(t->running_file);
+	// file_deny_write(t->running_file);
 	// lock_release(&filesys_lock);
 	/*-------------------------- project.2-Denying write -----------------------------*/
 
@@ -560,6 +558,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	success = true;
 
 done:
+	lock_release(&filesys_lock);
 	/* We arrive here whether the load is successful or not. */
     /*-------------------------- project.2-Denying write -----------------------------*/
 	// file_close (file);
@@ -779,7 +778,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, tmp_aux))
 			{
-				// free(tmp_aux);
+				free(tmp_aux);
 				return false;
 			}
 
@@ -958,13 +957,9 @@ void process_exit(void) {
         process_close_file(t->next_fd);
 				
     }
-	// printf("어디까지 가는지111???\n");
     // palloc_free_page(t->fd_table);
     file_close(t->running_file);
-	// printf("어디까지 가는지222???\n");
     sema_up(&t->sema_exit);
-	// printf("어디까지 가는지333???\n");
     process_cleanup();
-	// printf("어디까지 가는지444???\n");
 
 }

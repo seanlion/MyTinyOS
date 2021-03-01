@@ -2,6 +2,7 @@
 
 #include "vm/vm.h"
 #include "userprog/syscall.h"
+#include "userprog/process.h"
 
 static bool file_backed_swap_in (struct page *page, void *kva);
 static bool file_backed_swap_out (struct page *page);
@@ -81,7 +82,7 @@ file_backed_destroy (struct page *page) {
 		// 디스크에 있는 파일에 변경사항 있으면 반영
 		file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
 	}
-	palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
+	// palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
 	free(page->frame);
 
 }
@@ -129,13 +130,10 @@ do_mmap (void *addr, size_t length, int writable,
 	}
 	// printf("mmap 부분 file reopen 전111 \n");
 	struct file* reopen_file = file_reopen(file);
-
+	process_add_file(reopen_file); /* seugnmin's advice */
 	while (read_bytes > 0 || zero_bytes > 0) {
 
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
-		// printf("do_mmap :: page_read_bytes :: %d\n\n", page_read_bytes);
-		// printf("do_mmap :: file :: %d\n\n", file);
-		// printf("do_mmap :: file_length(file) :: %d\n\n", file_length(file));
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 		struct file_aux *tmp_aux = malloc(sizeof(struct file_aux));
 		tmp_aux->file = reopen_file;
@@ -152,8 +150,8 @@ do_mmap (void *addr, size_t length, int writable,
 
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
-		offset += PGSIZE; 
 		addr += PGSIZE;
+		offset += PGSIZE; 
 	}
 	// printf("여기 들어옴 do map222\n");
 	// printf("mmap 부분 22222\n");

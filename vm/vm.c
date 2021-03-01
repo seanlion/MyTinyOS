@@ -185,7 +185,8 @@ vm_get_frame (void) {
 		free(frame);
 	ASSERT (frame != NULL);
 	// printf("vm_get_frame 들어오는데 evict 이전\n");
-	frame->kva = palloc_get_page(PAL_USER | PAL_ZERO);
+	// frame->kva = palloc_get_page(PAL_USER | PAL_ZERO);
+	frame->kva = palloc_get_page(PAL_USER);
 	if (frame->kva == NULL) {
 		free(frame);
 		lock_acquire(&clock_list_lock);
@@ -489,7 +490,8 @@ void
 __free_page(struct frame *frame) {
 	del_frame_to_clock_list(frame);
 	// printf("__free_page 1111\n");
-	// free(frame);
+	// palloc_free_page(frame->kva);
+	free(frame);
 	// printf("__free_page 2222\n");
 }
 

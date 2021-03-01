@@ -105,8 +105,8 @@ anon_destroy (struct page *page) {
 	// printf("anon destroy 여기서 터지나222???\n");
 	// printf("frame kva?? %p\n", page->frame->kva);
 	// if (page->frame != NULL)
-		// free_frame(page->frame->kva);
-	palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
+	// 	free_frame(page->frame->kva);
+	// palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
 	free(page->frame);
 	// printf("anon destroy 여기서 터지나3333???\n");
 

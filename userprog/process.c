@@ -25,13 +25,13 @@
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
-#include "vm/vm.h"
 
 #include "userprog/exception.h"
 
 
 #ifdef VM
 #include "vm/vm.h"
+#include "hash.h"
 #endif
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
@@ -310,6 +310,10 @@ process_exec (void *f_name) {
 	/*-------------------------- project.2-Parsing -----------------------------*/
 
 	/* We first kill the current context */
+	/*cleanup에서 pt kill을 안하기 위한 방식 */
+#ifdef VM
+	supplemental_page_table_kill (&thread_current()->spt);
+#endif
 	process_cleanup ();
 #ifdef VM // table_kill에서 hash_destroy를 쓰기 때문에 exec시 init을 다시 해줘야 함.
 	supplemental_page_table_init(&thread_current()->spt);
@@ -402,9 +406,9 @@ static void
 process_cleanup (void) {
 	struct thread *curr = thread_current ();
 
-#ifdef VM
-	supplemental_page_table_kill (&curr->spt);
-#endif
+// #ifdef VM
+// 	supplemental_page_table_kill (&curr->spt);
+// #endif
 
 	uint64_t *pml4;
 	/* Destroy the current process's page directory and switch back
@@ -914,6 +918,7 @@ int process_add_file(struct file *f) {
         file_close(f);
         return -1;
     }
+	// printf("process add file next fd? %d\n", curr->next_fd);
 	curr->fd_table[curr->next_fd] = f;
 	return curr->next_fd++;
 }
@@ -952,6 +957,23 @@ void process_close_file(int fd) {
 void process_exit(void) {
     struct thread *t = thread_current();
     t->is_exit = true;
+#ifdef VM
+	supplemental_page_table_kill (&t->spt);
+#endif
+// #ifdef VM
+//     if (!hash_empty(&t->spt.vm)){
+//         struct hash_iterator i;
+//         hash_first(&i, &t->spt.vm);
+//         while (hash_next(&i))
+//         {
+//             struct page *page = hash_entry(hash_cur(&i), struct page, hash_elem);
+//             if (page_get_type(page) == VM_FILE && pml4_is_dirty(t->pml4, page->va) && page->writable)
+//             {
+//                 file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
+//             }
+//         }
+//     }
+// #endif
     for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
     {
         process_close_file(t->next_fd);

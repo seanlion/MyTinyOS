@@ -151,6 +151,9 @@ verify (void)
     {
       while (histogram[hist_idx]-- > 0)
         {
+          // printf("buf_idx : %ld\n", buf_idx);
+          // printf("buf2[buf_idx] : %d\n", buf2[buf_idx+1]);
+          // printf("hist_idx : %ld\n", hist_idx);
           if (buf2[buf_idx] != hist_idx)
             fail ("bad value %d in byte %zu", buf2[buf_idx], buf_idx);
           buf_idx++;

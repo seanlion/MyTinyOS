@@ -259,7 +259,10 @@ __do_fork (void *aux) {
     /*-------------------------- project.2-Process  -----------------------------*/
     for (int i = 2 ; i < parent->next_fd ; i++) {
         if (parent->fd_table[i] == NULL) continue;
-        current->fd_table[i] = file_duplicate(parent->fd_table[i]);
+        // current->fd_table[i] = file_duplicate(parent->fd_table[i]);
+		struct file* reopen = file_duplicate(parent->fd_table[i]);
+        // current->fd_table[i] = reopen;
+		process_add_file(reopen);
     }
     current->next_fd = parent->next_fd;
     sema_up(&parent->sema_child_load);
@@ -733,8 +736,10 @@ lazy_load_segment (struct page *page, void *aux) {
 	}
 
 	uint8_t *kva = page->frame->kva;
-	struct file * reopen_file = file_reopen(tmp_aux->file);
-	if (file_read_at(reopen_file, kva, tmp_aux->read_bytes, tmp_aux->offset) != (int) tmp_aux->read_bytes) {
+	// struct file * reopen_file = file_reopen(tmp_aux->file);
+	if (file_read_at(tmp_aux->file, kva, tmp_aux->read_bytes, tmp_aux->offset) != (int) tmp_aux->read_bytes)
+	// if (file_read_at(reopen_file, kva, tmp_aux->read_bytes, tmp_aux->offset) != (int) tmp_aux->read_bytes)
+	{
 		free(tmp_aux);
 		return false;
 	}
@@ -764,6 +769,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 	ASSERT (pg_ofs (upage) == 0);
 	ASSERT (ofs % PGSIZE == 0);
 
+	struct file* reopen_file = file_reopen(file); /* swap fork 안되서 테스트 */
+	process_add_file(reopen_file); /* swap fork 안되서 테스트 */
 	while (read_bytes > 0 || zero_bytes > 0) {
 		/* Do calculate how to fill this page.
 		 * We will read PAGE_READ_BYTES bytes from FILE
@@ -773,7 +780,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		struct load_aux *tmp_aux = malloc(sizeof(struct load_aux));
-		tmp_aux->file = file;
+		tmp_aux->file = reopen_file;
 		tmp_aux->offset = ofs;
 		tmp_aux->read_bytes = page_read_bytes;
 		tmp_aux->zero_bytes = page_zero_bytes;

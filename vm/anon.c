@@ -74,8 +74,8 @@ anon_swap_in (struct page *page, void *kva) {
 	page->frame->kva = kva;
 	page->frame->thread = thread_current();
 	anon_page->st_number = -1;
-	add_frame_to_clock_list(page->frame);
-	pml4_set_page(thread_current()->pml4, page->va, kva, page->writable);
+	// add_frame_to_clock_list(page->frame);
+	// pml4_set_page(thread_current()->pml4, page->va, kva, page->writable);
 	pml4_set_accessed(thread_current()->pml4, page->va, 1);
 
 	// swap_table에 해당 number 공간이 들어있다고 적기
@@ -113,11 +113,12 @@ anon_swap_out (struct page *page) {
 	// swap_table에 해당 number 공간을 비웠다고 적기
 	bitmap_set(swap_table, number, true);
 	// page table에 page와 frame 매핑정보 삭제
-	/* anon.c 수정*/
-	memset(page->frame->kva,0, PGSIZE);
-	palloc_free_page(page->frame->kva);
+	// memset(page->frame->kva,0, PGSIZE);
+	// palloc_free_page(page->frame->kva);
 	// del_frame_to_clock_list(page->frame);
 	// pml4_clear_page(page->thread->pml4, page->va);
+	del_frame_to_clock_list(page->frame);
+	// palloc_free_page(page->frame->kva);
 	page->frame = NULL;
 	free(page->frame);
 	pml4_clear_page(thread_current()->pml4, page->va);

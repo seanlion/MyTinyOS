@@ -317,8 +317,10 @@ vm_do_claim_page (struct page *page) {
 	// printf("여기서 type은??? %d\n", page->operations->type);
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	struct thread *t = thread_current();
-	if (!pml4_set_page(t->pml4, page->va, frame->kva, page->writable))
+	if (!pml4_set_page(t->pml4, page->va, frame->kva, page->writable)) {
 		return false;
+	}
+	
 	add_frame_to_clock_list(frame);
 	return swap_in (page, frame->kva);
 	// pml4_set_page(t->pml4, page->va, frame->kva, true);

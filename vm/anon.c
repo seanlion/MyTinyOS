@@ -29,7 +29,7 @@ vm_anon_init (void) {
 	/* disk_size: SECTOR 단위로 반환
 	 * bitmap_create: PG 단위로 비트맵을 생성
 	 * 한 PG 당 8개의 SECTOR이기 때문에 8로 나눠줌 */
-	printf("\n\n\n~~~~~~~~~~~~~~~~~~~~~disk_size :: %ld~~~~~~~~~~~~~~~~~~~~~~\n\n\n\n", disk_size(swap_disk));
+	// printf("\n\n\n~~~~~~~~~~~~~~~~~~~~~disk_size :: %ld~~~~~~~~~~~~~~~~~~~~~~\n\n\n\n", disk_size(swap_disk));
 	swap_table = bitmap_create (disk_size (swap_disk) / 8);
 }
 
@@ -52,8 +52,8 @@ anon_swap_in (struct page *page, void *kva) {
 	// lock_acquire(&clock_list_lock);
 	struct anon_page *anon_page = &page->anon;
 	size_t number = anon_page->st_number;
-	printf("anon_swap_in :: page :: %p\n",page);
-	printf("anon_swap_in :: number :: %d\n",number);
+	// printf("anon_swap_in :: page :: %p\n",page);
+	// printf("anon_swap_in :: number :: %d\n",number);
 	// 물리 메모리 페이지에 디스크의 데이터 적기
 
 	if (anon_page->st_number == -1) {
@@ -68,8 +68,8 @@ anon_swap_in (struct page *page, void *kva) {
 	page->frame->kva = kva;
 	page->frame->thread = thread_current();
 	anon_page->st_number = -1;
-	add_frame_to_clock_list(page->frame);
-	pml4_set_page(thread_current()->pml4, page->va, kva, page->writable);
+	// add_frame_to_clock_list(page->frame);
+	// pml4_set_page(thread_current()->pml4, page->va, kva, page->writable);
 	pml4_set_accessed(thread_current()->pml4, page->va, 1);
 
 	// swap_table에 해당 number 공간이 들어있다고 적기
@@ -89,8 +89,8 @@ anon_swap_out (struct page *page) {
 	// false는 비어있음, true는 들어있음
 	size_t number = bitmap_scan(swap_table, 0, 1, false);
 	anon_page->st_number = number;
-	printf("anon_swap_out :: page :: %p\n", page);
-	printf("anon_swap_out :: number :: %d\n", number);
+	// printf("anon_swap_out :: page :: %p\n", page);
+	// printf("anon_swap_out :: number :: %d\n", number);
 	if (number == -1) {
 		return false;
 	}
@@ -103,7 +103,7 @@ anon_swap_out (struct page *page) {
 
 	// page table에 page와 frame 매핑정보 삭제
 	del_frame_to_clock_list(page->frame);
-	palloc_free_page(page->frame->kva);
+	// palloc_free_page(page->frame->kva);
 	pml4_clear_page(thread_current()->pml4, page->va);
 	page->frame = NULL;
 	

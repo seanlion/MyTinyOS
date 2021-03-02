@@ -66,7 +66,7 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 			break;
 
 		case VM_FILE:
-			printf("vm_alloc_page_with_initializer :: VM_FILE :: upage :: %p\n", upage);
+			// printf("vm_alloc_page_with_initializer :: VM_FILE :: upage :: %p\n", upage);
 			uninit_new(new_page, upage, init, type, aux, &file_backed_initializer);
 			struct file_aux * tmp_aux = (struct file_aux *)aux;
 			if (aux != NULL)
@@ -200,7 +200,7 @@ vm_get_frame (void) {
 
 	frame->page = NULL;
 
-	add_frame_to_clock_list(frame);
+	// add_frame_to_clock_list(frame);
 
 	ASSERT (frame->page == NULL);
 	return frame;
@@ -315,8 +315,9 @@ vm_do_claim_page (struct page *page) {
 	// printf("여기서 type은??? %d\n", page->operations->type);
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	struct thread *t = thread_current();
-	if (!pml4_set_page(t->pml4, page->va, frame->kva, page->writable))
+	if (!pml4_set_page(t->pml4, page->va, frame->kva, page->writable)) {
 		return false;
+	}
 	
 	add_frame_to_clock_list(frame);
 

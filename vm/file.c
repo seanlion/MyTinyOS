@@ -38,6 +38,7 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the file. */
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
+	printf("file_backed_swap in \n");
 	struct file_page *file_page = &page->file;
 	// printf("file_backed swap in이 작동?\n");
 	// lock_acquire(&filesys_lock);
@@ -53,6 +54,7 @@ file_backed_swap_in (struct page *page, void *kva) {
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
+	printf("file_backed_swap out \n");
 	struct file_page *file_page = &page->file;
 	struct thread *t = thread_current();
 	// printf("file_backed swap out이 작동?\n");
@@ -120,17 +122,17 @@ do_mmap (void *addr, size_t length, int writable,
 
 	// mapping id를 넣어주기 위해 파일 테이블에서 파일 위치를 id로 넣음.(fd_table에서 파일을 찾음.) -> 이거는 일단 보류.
 
-	struct thread * t = thread_current();
-	for (int i = 2; i < t->next_fd; i++) {
-		if (t->fd_table[i] == file) {
-			map_id = i;
-			// break;
-		}
+	// struct thread * t = thread_current();
+	// for (int i = 2; i < t->next_fd; i++) {
+	// 	if (t->fd_table[i] == file) {
+	// 		map_id = i;
+	// 		// break;
+	// 	}
 
-	}
+	// }
 	// printf("mmap 부분 file reopen 전111 \n");
 	struct file* reopen_file = file_reopen(file);
-	process_add_file(reopen_file); /* seugnmin's advice */
+	map_id = process_add_file(reopen_file); /* seugnmin's advice */
 	while (read_bytes > 0 || zero_bytes > 0) {
 
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
@@ -140,7 +142,7 @@ do_mmap (void *addr, size_t length, int writable,
 		tmp_aux->offset = offset;
 		tmp_aux->read_bytes = page_read_bytes;
 		tmp_aux->zero_bytes = page_zero_bytes;
-		// tmp_aux->writable = writable;
+		tmp_aux->writable = writable;
 		tmp_aux->mapping_id = map_id;
 		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_map, tmp_aux) )
 			{
@@ -152,6 +154,9 @@ do_mmap (void *addr, size_t length, int writable,
 		zero_bytes -= page_zero_bytes;
 		addr += PGSIZE;
 		offset += PGSIZE; 
+		// printf("mmap의 read_bytes %d\n",read_bytes);
+		// printf("mmap의 zero_bytes %d\n",zero_bytes);
+
 	}
 	// printf("여기 들어옴 do map222\n");
 	// printf("mmap 부분 22222\n");
@@ -232,6 +237,7 @@ munmap_action (struct hash_elem *e, void* aux) {
 				}
 			}
 		}
+		pml4_clear_page(thread_current()->pml4, page->va); /* seunghyun's advice*/
 		spt_remove_page(&t->spt, page);
 	}
 	// printf("munmap_action :: munmap_action 이후\n");

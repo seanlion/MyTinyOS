@@ -4,6 +4,7 @@
 #include "vm/vm.h"
 #include "devices/disk.h"
 
+static struct bitmap *swap_table;
 /* DO NOT MODIFY BELOW LINE */
 static struct disk *swap_disk;
 static bool anon_swap_in (struct page *page, void *kva);
@@ -18,7 +19,6 @@ static const struct page_operations anon_ops = {
 	.type = VM_ANON,
 };
 
-static struct bitmap *swap_table;
 
 /* Initialize the data for anonymous pages */
 void
@@ -45,6 +45,7 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the swap disk. */
 static bool
 anon_swap_in (struct page *page, void *kva) {
+	// printf("anon_swap_in \n");
 	// printf("anon_swap_in이 작동?\n");
 	// lock_acquire(&clock_list_lock);
 	struct anon_page *anon_page = &page->anon;
@@ -53,7 +54,13 @@ anon_swap_in (struct page *page, void *kva) {
 	// 물리 메모리 페이지에 디스크의 데이터 적기
 	for (int i = 0; i < SECTOR_PER_PAGE; i++) {
 		disk_read(swap_disk, (number * SECTOR_PER_PAGE) + i, kva + (DISK_SECTOR_SIZE * i));
+		/* anon.c 다른 코드 참고. kva에 DISK_SECTOR_SIZE만 더한다?*/
 	}
+
+	/* anon.c 참고 */
+	// bitmap_reset(swap_table, (page->swap_slot)/8);
+	// bitmap_set_multiple(swap_table, anon_page->start_sector, 8, 0);
+	// bitmap_set_multiple(bitmap, sector, 8, 0)
 
 	// page table에 page와 frame 매핑정보 설정
 	pml4_set_page(thread_current()->pml4, page->va, kva, page->writable);
@@ -74,9 +81,13 @@ anon_swap_out (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
 	// printf("anon_swap_out이 작동?\n");
 	// lock_acquire(&clock_list_lock);
-	
+	// printf("anon_swap_out \n");
 	// false는 비어있음, true는 들어있음
 	size_t number = bitmap_scan(swap_table, 0, 1, false);
+
+	/* anon.c 참고 */
+	// uint32_t sector = bitmap_scan_and_flip(bitmap, nextfit, 8, false); // 8개가 연속으로 빈 비트맵을 찾아줌
+	
 	anon_page->st_number = number;
 
 	// 디스크에 물리메모리 정보 적기
@@ -84,12 +95,18 @@ anon_swap_out (struct page *page) {
 		disk_write(swap_disk, (number * SECTOR_PER_PAGE) + i, page->frame->kva + (DISK_SECTOR_SIZE * i));
 	}
 
-	// page table에 page와 frame 매핑정보 삭제
-	pml4_clear_page(thread_current()->pml4, page->va);
 	
 	// swap_table에 해당 number 공간을 비웠다고 적기
 	bitmap_set(swap_table, number, true);
+	// page table에 page와 frame 매핑정보 삭제
+	/* anon.c 수정*/
+	memset(page->frame->kva,0, PGSIZE);
+	palloc_free_page(page->frame->kva);
+	// del_frame_to_clock_list(page->frame);
+	// pml4_clear_page(page->thread->pml4, page->va);
 	page->frame = NULL;
+	free(page->frame);
+	pml4_clear_page(thread_current()->pml4, page->va);
  	/**/
 	// lock_release(&clock_list_lock);
 
@@ -105,8 +122,9 @@ anon_destroy (struct page *page) {
 	// printf("anon destroy 여기서 터지나222???\n");
 	// printf("frame kva?? %p\n", page->frame->kva);
 	// if (page->frame != NULL)
-	// 	free_frame(page->frame->kva);
+	// free_frame(page->frame->kva);
 	// palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
+	// del_frame_to_clock_list(page->frame);
 	free(page->frame);
 	// printf("anon destroy 여기서 터지나3333???\n");
 

@@ -80,6 +80,7 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		}
 
 		new_page->writable = writable;
+		// printf("새로 할당받은 new page %p\n", new_page);
 		/* TODO: Insert the page into the spt. */
 		if (spt_insert_page(spt, new_page)) {
 			return true;
@@ -117,6 +118,7 @@ spt_insert_page (struct supplemental_page_table *spt,
 		hash_insert(&spt->vm, &page->hash_elem);
 		succ = true;
 	}
+	// PANIC("여기까지1111\n");
 	return succ;
 }
 
@@ -314,7 +316,7 @@ vm_do_claim_page (struct page *page) {
 	struct thread *t = thread_current();
 	if (!pml4_set_page(t->pml4, page->va, frame->kva, page->writable))
 		return false;
-
+	add_frame_to_clock_list(frame);
 	return swap_in (page, frame->kva);
 	// pml4_set_page(t->pml4, page->va, frame->kva, true);
 }

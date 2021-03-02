@@ -119,6 +119,7 @@ struct thread {
     int exit_status;
 	struct intr_frame fork_tf;
     int next_fd;
+    // struct file* fd_table[512];
     struct file* fd_table[64];
 	 /*-------------------------- project.2-Denying write -----------------------------*/
 	struct file* running_file;

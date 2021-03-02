@@ -446,7 +446,8 @@ void *mmap (void *addr, size_t length, int writable, int fd, off_t offset){
         return NULL;
     }
     // printf("여기 들어와야 함 mmap 전\n");
-    if (!lock_held_by_current_thread(&filesys_lock)); /*if에 안걸리면 lock release만 되길래 주석 처리*/
+    if (!lock_held_by_current_thread(&filesys_lock)) 
+    /*if에 안걸리면 lock release만 되길래 주석 처리*/
         lock_acquire(&filesys_lock);
     void* addr_mmap = do_mmap (addr,length, writable, file_mmap, offset);
     lock_release(&filesys_lock);

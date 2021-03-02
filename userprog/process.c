@@ -355,7 +355,7 @@ process_exec (void *f_name) {
     //     return -1;
     // }
     // else t->is_load = 1;
-
+	// PANIC("process exec의 do_iret 전 까지\n");
 	/* Start switched process. */
 	do_iret (&_if);
 	NOT_REACHED ();
@@ -570,6 +570,7 @@ done:
     /*-------------------------- project.2-Denying write -----------------------------*/
 	// file_close (file);
     /*-------------------------- project.2-Denying write -----------------------------*/
+	// PANIC("load의 done까지\n");
 	return success;
 
 }

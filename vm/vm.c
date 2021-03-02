@@ -60,11 +60,13 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		switch (VM_TYPE(type))
 		{
 		case VM_ANON:
+			// printf("vm_alloc_page_with_initializer :: VM_ANON :: upage :: %p\n", upage);
 			uninit_new(new_page, upage, init, type, aux, &anon_initializer);
 			new_page->mapping_id = -1;
 			break;
 
 		case VM_FILE:
+			printf("vm_alloc_page_with_initializer :: VM_FILE :: upage :: %p\n", upage);
 			uninit_new(new_page, upage, init, type, aux, &file_backed_initializer);
 			struct file_aux * tmp_aux = (struct file_aux *)aux;
 			if (aux != NULL)
@@ -194,6 +196,7 @@ vm_get_frame (void) {
 		lock_release(&clock_list_lock);
 	}
 	// printf("vm_get_frame 들어오는데 evict 이후\n");
+	// printf("vm_get_frame :: frame->kva :: %p\n", frame->kva);
 
 	frame->page = NULL;
 
@@ -247,6 +250,7 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 	}
 	
 	page = spt_find_page(spt, addr);
+	// printf("vm_try_handle_fault :: page :: %p\n", page);
 	if(page!=NULL){
 			if(!not_present&&is_user_vaddr(addr))
 				exit(-1);
@@ -259,11 +263,10 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 		}
 	else {
 		if ((user && write)){
-			if (pg_no(USER_STACK) - 256 <= pg_no(addr) || (t_rsp) - (uintptr_t)addr == 8 || addr < t_rsp) // page-merge-stk 성공 왔다갔다 하는 버전
-				
 			// if(((uint64_t)addr > t_rsp - PGSIZE ) && (pg_no(USER_STACK) - pg_no(addr)) <= 250 && addr > t_rsp) // page-merge-stk 성공 버전
 			// 1MB Maximum 제한
 			// stack growth를 할 수 있다고 판단
+			if (addr > (USER_STACK - (1 << 20)) && addr >= f->rsp - 8 && addr < USER_STACK) // page-merge-stk 성공 왔다갔다 하는 버전
 				{
 					// printf("stack growth 하기전 \n");
 					vm_stack_growth(addr);
@@ -314,6 +317,8 @@ vm_do_claim_page (struct page *page) {
 	struct thread *t = thread_current();
 	if (!pml4_set_page(t->pml4, page->va, frame->kva, page->writable))
 		return false;
+	
+	add_frame_to_clock_list(frame);
 
 	return swap_in (page, frame->kva);
 	// pml4_set_page(t->pml4, page->va, frame->kva, true);

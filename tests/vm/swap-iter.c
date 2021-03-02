@@ -34,8 +34,7 @@ test_main (void)
     // printf("sizeof(large)는 ?? %ld \n",sizeof(large));
     // printf("iter 테케에서 mmap 시작\n");
     CHECK ((map = mmap (actual, sizeof(large), 0, handle, 0)) != MAP_FAILED, "mmap \"large.txt\"");
-    // printf("mmap 리턴값 주소 %p\n", map);
-    // printf("iter 테케에서 mmap 끝\n");
+
     /* Read in file map'd page */
     if (memcmp (actual, large, strlen (large)))
         fail ("read of mmap'd file reported bad data");

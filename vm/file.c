@@ -19,10 +19,8 @@ static const struct page_operations file_ops = {
 };
 
 /* The initializer of file vm */
-int map_id;
 void
 vm_file_init (void) {
-	map_id =2;
 }
 
 /* Initialize the file backed page */
@@ -38,7 +36,7 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the file. */
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
-	printf("file_backed_swap in \n");
+	// printf("file_backed_swap in \n");
 	struct file_page *file_page = &page->file;
 	// printf("file_backed swap in이 작동?\n");
 	// lock_acquire(&filesys_lock);
@@ -54,7 +52,7 @@ file_backed_swap_in (struct page *page, void *kva) {
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
-	printf("file_backed_swap out \n");
+	// printf("file_backed_swap out \n");
 	struct file_page *file_page = &page->file;
 	struct thread *t = thread_current();
 	// printf("file_backed swap out이 작동?\n");
@@ -77,15 +75,15 @@ file_backed_destroy (struct page *page) {
 	struct file_page *file_page = &page->file;
 	struct thread *t = thread_current();
 
-	if(page->frame == NULL)
-		return;
+	// if(page->frame == NULL)
+	// 	return;
 
-	if (pml4_is_dirty(t->pml4, page->va)) {
-		// 디스크에 있는 파일에 변경사항 있으면 반영
-		file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
-	}
-	// palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
-	free(page->frame);
+	// if (pml4_is_dirty(t->pml4, page->va)) {
+	// 	// 디스크에 있는 파일에 변경사항 있으면 반영
+	// 	file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
+	// }
+	// // palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
+	// free(page->frame);
 
 }
 
@@ -132,7 +130,8 @@ do_mmap (void *addr, size_t length, int writable,
 	// }
 	// printf("mmap 부분 file reopen 전111 \n");
 	struct file* reopen_file = file_reopen(file);
-	map_id = process_add_file(reopen_file); /* seugnmin's advice */
+	// map_id = process_add_file(reopen_file); /* seugnmin's advice */
+	int map_id = process_add_file(reopen_file); /* seugnmin's advice */
 	while (read_bytes > 0 || zero_bytes > 0) {
 
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
@@ -169,7 +168,7 @@ do_mmap (void *addr, size_t length, int writable,
 
 static bool
 lazy_map (struct page *page, void *aux){
-	// printf("lazy_map :: addr :: %p\n",page);
+	// printf("lazy_map :: page :: %p\n", page);
 	struct file_aux *tmp_aux = (struct file_aux *)aux;
 	// printf("lazy map 들어왔다!!\n");
 	if(page->frame == NULL){

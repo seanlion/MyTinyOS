@@ -60,6 +60,7 @@ sema_init (struct semaphore *sema, unsigned value) {
    sema_down function. */
 void
 sema_down (struct semaphore *sema) {
+	// printf("sema down 한다???\n");
 	enum intr_level old_level;
 
 	ASSERT (sema != NULL);
@@ -69,6 +70,7 @@ sema_down (struct semaphore *sema) {
 	while (sema->value == 0) {
 		// list_push_back (&sema->waiters, &thread_current ()->elem);
 		/*-------------------------- project.1-Priority Sync -----------------------------*/
+		// donate_priority(); /* page-merge-mm을 위해 테스트*/
 		list_insert_ordered(&sema->waiters, &thread_current ()->elem, &cmp_priority, NULL);
 		/*-------------------------- project.1-Priority Sync -----------------------------*/
 		thread_block ();
@@ -109,6 +111,7 @@ sema_try_down (struct semaphore *sema) {
 void
 sema_up (struct semaphore *sema) {
 	enum intr_level old_level;
+	// printf("sema up 한다???\n");
 
 	ASSERT (sema != NULL);
 
@@ -201,14 +204,15 @@ lock_acquire (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
-
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	struct thread *t = thread_current();
 	if (lock->holder != NULL)
 	{
 		t->wait_on_lock = lock;
 		list_push_back(&lock->holder->donations, &t->donation_elem);
-		donate_priority();
+		// list_insert_ordered(&lock->holder->donations,&t->donation_elem,cmp_priority,NULL);
+		/* cmp_priority 혹은 cmp_sem_priority 중에 하나*/
+		donate_priority(); /*여기 아니면 sema down에서*/
 	}
 	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	sema_down (&lock->semaphore);
@@ -365,7 +369,7 @@ bool cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, voi
 {
 	struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
 	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
-	
+	// printf("cmp_sem_priority")
 	struct list_elem *sa_e = list_begin(&(sa->semaphore.waiters));
 	struct list_elem *sb_e = list_begin(&(sb->semaphore.waiters));
 

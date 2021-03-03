@@ -119,6 +119,7 @@ struct thread {
     int exit_status;
 	struct intr_frame fork_tf;
     int next_fd;
+    // struct file* fd_table[512];
     struct file* fd_table[64];
 	 /*-------------------------- project.2-Denying write -----------------------------*/
 	struct file* running_file;
@@ -142,6 +143,7 @@ struct thread {
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
+
 	/* ---------------------- >> Project.3 Stack >> ---------------------------- */
 	uint64_t t_rsp;
 	void * stack_bottom;

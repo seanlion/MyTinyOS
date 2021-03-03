@@ -250,6 +250,7 @@ pml4_set_page (uint64_t *pml4, void *upage, void *kpage, bool rw) {
 void
 pml4_clear_page (uint64_t *pml4, void *upage) {
 	uint64_t *pte;
+
 	ASSERT (pg_ofs (upage) == 0);
 	ASSERT (is_user_vaddr (upage));
 

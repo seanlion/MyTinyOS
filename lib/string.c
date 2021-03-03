@@ -48,13 +48,14 @@ int
 memcmp (const void *a_, const void *b_, size_t size) {
 	const unsigned char *a = a_;
 	const unsigned char *b = b_;
-
 	ASSERT (a != NULL || size == 0);
 	ASSERT (b != NULL || size == 0);
 
 	for (; size-- > 0; a++, b++)
 		if (*a != *b)
+		{
 			return *a > *b ? +1 : -1;
+		}
 	return 0;
 }
 

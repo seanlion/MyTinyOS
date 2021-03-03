@@ -21,7 +21,9 @@ test_main (void)
   msg ("memory is readable %d", *(int *) ACTUAL + 0x1000);
 
   munmap (map);
-
+  // printf("여기까지 오나00000??\n");
   fail ("unmapped memory is readable (%d)", *(int *) (ACTUAL + 0x1000));
+  // printf("여기까지 오나11111??\n");
   fail ("unmapped memory is readable (%d)", *(int *) (ACTUAL));
+  // printf("여기까지 오나22??\n");
 }

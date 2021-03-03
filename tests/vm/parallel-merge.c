@@ -46,38 +46,57 @@ sort_chunks (const char *subprocess, int exit_status)
       char fn[128];
       char cmd[128];
       int handle;
-
+      // printf("--------\n");
       msg ("sort chunk %zu", i);
-
       /* Write this chunk to a file. */
       snprintf (fn, sizeof fn, "buf%zu", i);
+      // printf("for문 초반 cmd는?? %s\n", cmd);
+      // printf("parallel-merge create 전 \n");
+      // printf(" create하는 fn은??? %s\n", fn);
       create (fn, CHUNK_SIZE);
       quiet = true;
+      // printf("parallel-merge create 후 \n");
       CHECK ((handle = open (fn)) > 1, "open \"%s\"", fn);
       write (handle, buf1 + CHUNK_SIZE * i, CHUNK_SIZE);
+      // printf("parallel-merge open 후 \n");
+      // printf("어디서 터지나요22\n");
       close (handle);
-
+      // printf("어디서 터지나요33\n");
       /* Sort with subprocess. */
+      // printf("exit 이전??\n");
       snprintf (cmd, sizeof cmd, "%s %s", subprocess, fn);
+      // printf("exit 이후??\n");
       children[i] = fork (subprocess);
+      // printf("children[i]는??? %d\n", children[i]);
+      // printf("parallel-merge fork \n");
       if (children[i] == 0)
+      {
+        // printf("----자식-----\n ");
+        // printf("parallel-merge exec 전 \n");
+        // printf("parallel-merge에서 exec 하는 cmd는? %s\n", cmd);
         CHECK ((children[i] = exec (cmd)) != -1, "exec \"%s\"", cmd);
+        // printf("parallel-merge exec 후 \n");
+        // printf("----자식-----\n ");
+      }
+      // printf(" for문 후반 fn은??? %s\n", fn);
       quiet = false;
+      // printf("----부모-----\n ");
     }
 
   for (i = 0; i < CHUNK_CNT; i++)
     {
       char fn[128];
       int handle;
-
       CHECK (wait (children[i]) == exit_status, "wait for child %zu", i);
 
       /* Read chunk back from file. */
       quiet = true;
       snprintf (fn, sizeof fn, "buf%zu", i);
+
       CHECK ((handle = open (fn)) > 1, "open \"%s\"", fn);
       read (handle, buf1 + CHUNK_SIZE * i, CHUNK_SIZE);
       close (handle);
+
       quiet = false;
     }
 }
@@ -132,6 +151,9 @@ verify (void)
     {
       while (histogram[hist_idx]-- > 0)
         {
+          // printf("buf_idx : %ld\n", buf_idx);
+          // printf("buf2[buf_idx] : %d\n", buf2[buf_idx+1]);
+          // printf("hist_idx : %ld\n", hist_idx);
           if (buf2[buf_idx] != hist_idx)
             fail ("bad value %d in byte %zu", buf2[buf_idx], buf_idx);
           buf_idx++;

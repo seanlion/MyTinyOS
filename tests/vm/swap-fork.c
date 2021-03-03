@@ -28,4 +28,5 @@ test_main (void)
   	  if(wait (child[i]) != 0)
           fail("More than one child process' stack is corrupted");
     }
+  return ;
 }

@@ -76,13 +76,13 @@ file_backed_destroy (struct page *page) {
 	struct file_page *file_page = &page->file;
 	struct thread *t = thread_current();
 
-	// if(page->frame == NULL)
-	// 	return;
+	// // if(page->frame == NULL)
+	// // 	return;
 
-	if (pml4_is_dirty(t->pml4, page->va)) {
-		// 디스크에 있는 파일에 변경사항 있으면 반영
-		file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
-	}
+	// if (pml4_is_dirty(t->pml4, page->va)) {
+	// 	// 디스크에 있는 파일에 변경사항 있으면 반영
+	// 	file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
+	// }
 	// // palloc_free_page(page->frame->kva); /*vm_get_frame에서 get page 하고 안 해주는 것 같은데?*/
 	// free(page->frame);
 

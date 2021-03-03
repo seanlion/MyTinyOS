@@ -968,20 +968,7 @@ void process_exit(void) {
 #ifdef VM
 	supplemental_page_table_kill (&t->spt);
 #endif
-// #ifdef VM
-//     if (!hash_empty(&t->spt.vm)){
-//         struct hash_iterator i;
-//         hash_first(&i, &t->spt.vm);
-//         while (hash_next(&i))
-//         {
-//             struct page *page = hash_entry(hash_cur(&i), struct page, hash_elem);
-//             if (page_get_type(page) == VM_FILE && pml4_is_dirty(t->pml4, page->va) && page->writable)
-//             {
-//                 file_write_at(page->file.file, page->frame->kva, page->file.read_bytes, page->file.offset);
-//             }
-//         }
-//     }
-// #endif
+
     for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
     {
         process_close_file(t->next_fd);

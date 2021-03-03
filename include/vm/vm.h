@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include "threads/palloc.h"
 
+
+
 enum vm_type {
 	/* page not initialized */
 	VM_UNINIT = 0,
@@ -19,6 +21,11 @@ enum vm_type {
 	 * markers, until the value is fit in the int. */
 	VM_MARKER_0 = (1 << 3),
 	VM_MARKER_1 = (1 << 4),
+
+/* ---------------------- >> Project.3 Anony >> -----------------------  */
+    VM_STACK = (1 << 5),
+/* ---------------------- << Project.3 Anony << -----------------------  */
+
 
 	/* DO NOT EXCEED THIS VALUE. */
 	VM_MARKER_END = (1 << 31),
@@ -57,6 +64,32 @@ struct page {
 	bool is_loaded;				/* 물리메모리의 탑재 여부를 알려주는 플래그 */
 	size_t swap_slot;			/* 스왑 슬롯 */
 	struct hash_elem hash_elem;	/* 해시 테이블 Element */
+
+	/* ---------------------- >> Project.3 MEM Management >> -----------------------  */
+
+	enum vm_type type;          /* VM_UNINIT, VM_FILE, VM_ANON */
+	bool writable;              /* True 일 경우 해당 주소에 write 가능
+                                 * False 일 경우 해당 주소에 write 불가능 */
+	bool is_loaded;             /* 물리메모리의 탑재 여부를 알려주는 플래그 */
+	struct file* ref_file;      /* 가상주소와 매핑된 파일 */
+
+    /* Memory Mapped File 에서 다룰 예정 */
+	struct list_elem mmap_elem; /*mmap 리스트 element */
+
+	size_t offset;              /* 읽어야 할 파일 오프셋 */
+	size_t read_bytes;          /* 가상페이지에 쓰여져 있는 데이터 크기 */
+	size_t zero_bytes;          /* 0으로 채울 남은 페이지의 바이트 */
+
+    /* Swapping 과제에서 다룰 예정 */
+	size_t swap_slot;           /* 스왑 슬롯 */
+
+    /* vm_entry들을 위한 자료구조 부분에서 다룰 예정 */
+	struct hash_elem hash_elem; /* 해시 테이블 Element */
+
+	/* ---------------------- << Project.3 MEM Management << -----------------------  */
+
+
+
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
@@ -113,7 +146,10 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
-	struct hash vm;
+	/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
+    struct hash vm;
+	/* ---------------------- << Project.3 MEM Management << ---------------------------- */
+
 };
 
 struct lock spt_lock;

@@ -62,9 +62,14 @@ uninit_initialize (struct page *page, void *kva) {
 static void
 uninit_destroy (struct page *page) {
 	struct uninit_page *uninit UNUSED = &page->uninit;
+	/* ---------------------- >> Project.3 Anony >> ---------------------------- */
+	
 	/* TODO: Fill this function.
 	 * TODO: If you don't have anything to do, just return. */
 	free(uninit->aux);
 	// printf("uninit_destroy이 작동?\n");
 	return;
 }
+
+
+

@@ -5,6 +5,29 @@
 #include "vm/inspect.h"
 #include <list.h>
 
+/* ---------------------- >> Project.3 Anony >> -----------------------  */
+struct load_info{
+    struct file *file;
+    off_t ofs;
+    uint8_t *upage;
+    uint32_t read_bytes;
+    uint32_t zero_bytes;
+    bool writable;
+};
+/* ---------------------- << Project.3 Anony << -----------------------  */
+
+
+/* ---------------------- Project.3 ----------------------------  */
+unsigned page_hash (const struct hash_elem *p_, void *aux UNUSED);
+bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
+struct page *page_lookup (const void *address);
+void page_destroy (const struct hash_elem *hash_elem, void *aux);
+/* ---------------------- Project.3 ----------------------------  */
+
+/* ---------------------- >> Project.3 Stack >> ----------------------- */
+#define STACK_LIMIT 0x47380000
+/* ---------------------- << Project.3 Stack << ----------------------- */
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void
@@ -44,6 +67,7 @@ static struct frame *vm_evict_frame (void);
 /* Create the pending page object with initializer. If you want to create a
  * page, do not create it directly and make it through this function or
  * `vm_alloc_page`. */
+// 이니셜라이저
 bool
 vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		vm_initializer *init, void *aux) {
@@ -53,6 +77,9 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
+
+		/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
+
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
@@ -92,6 +119,7 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 			free (new_page);
 			goto err;
 		}
+
 	}
 err:
 	return false;
@@ -108,6 +136,7 @@ spt_find_page (struct supplemental_page_table *spt, void *va) {
 	e = hash_find(&spt->vm, &page.hash_elem);
 	// printf("spt_find_page 들어옴\n");
 	return e != NULL ? hash_entry(e, struct page, hash_elem) : NULL;
+
 }
 
 /* Insert PAGE into spt with validation. */
@@ -115,12 +144,16 @@ bool
 spt_insert_page (struct supplemental_page_table *spt,
 		struct page *page) {
 	int succ = false;
+
+	/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
+
 	/* TODO: Fill this function. */
 	if (hash_find(&spt->vm, &page->hash_elem) == NULL) {
 		hash_insert(&spt->vm, &page->hash_elem);
 		succ = true;
 	}
 	// PANIC("여기까지1111\n");
+
 	return succ;
 }
 
@@ -209,6 +242,7 @@ vm_get_frame (void) {
 }
 
 /* Growing the stack. */
+// 스택
 static void
 vm_stack_growth (void *addr) {
 	if (!is_user_vaddr(addr)){ // bad read 방지
@@ -227,6 +261,7 @@ vm_handle_wp (struct page *page UNUSED) {
 }
 
 /* Return true on success */
+//핸들폴트
 bool
 vm_try_handle_fault (struct intr_frame *f, void *addr,
 		bool user, bool write, bool not_present) {
@@ -277,7 +312,6 @@ vm_try_handle_fault (struct intr_frame *f, void *addr,
 		}
 		return false;
 	}
-
 }
 
 /* Free the page.
@@ -289,6 +323,7 @@ vm_dealloc_page (struct page *page) {
 }
 
 /* Claim the page that allocate on VA. */
+//클레임페이지
 bool
 vm_claim_page (void *va) {
 	struct page *page = NULL;
@@ -302,6 +337,7 @@ vm_claim_page (void *va) {
 	return vm_do_claim_page (page);
 }
 
+// 두클레임
 /* Claim the PAGE and set up the mmu. */
 static bool
 vm_do_claim_page (struct page *page) {
@@ -309,7 +345,7 @@ vm_do_claim_page (struct page *page) {
 		return false;
 
 	struct frame *frame = vm_get_frame ();
-
+	// printf("---debug// do_claim_page // page : %p \n", page );
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
@@ -322,6 +358,7 @@ vm_do_claim_page (struct page *page) {
 	}
 	
 	add_frame_to_clock_list(frame);
+
 	return swap_in (page, frame->kva);
 	// pml4_set_page(t->pml4, page->va, frame->kva, true);
 }
@@ -331,6 +368,7 @@ void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 	hash_init(&spt->vm, page_hash, page_less, NULL);
 	lock_init(&spt_lock);
+
 }
 
 /* Copy supplemental page table from src to dst */
@@ -418,11 +456,15 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 	lock_release(&spt_lock);
 
 	return result;
+
 }
 
 /* Free the resource hold by the supplemental page table */
 void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
+
+	/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
+
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
 	if (hash_empty(&spt->vm)){ // 예외처리
@@ -441,14 +483,17 @@ page_hash (const struct hash_elem *p_, void *aux UNUSED) {
   return hash_bytes (&p->va, sizeof p->va);
 }
 
-/* Returns true if page a precedes page b. */
-bool
-page_less (const struct hash_elem *a_,
+
+/* ---------------------- >> Project.3 MEM Management >> ---------------------------- */
+
+// page 간 va를 비교 (a가 크면 false, b가 크면 true 반환)
+bool page_less (const struct hash_elem *a_,
            const struct hash_elem *b_, void *aux UNUSED) {
   const struct page *a = hash_entry (a_, struct page, hash_elem);
   const struct page *b = hash_entry (b_, struct page, hash_elem);
   return a->va < b->va;
 }
+
 
 void 
 page_delete(const struct hash_elem *e, void *aux){
@@ -505,4 +550,8 @@ get_next_clock() {
 	if (clock_ptr == list_end(&clock_list))
 		return NULL;
 	return clock_ptr;
-}
+
+/* ---------------------- << Project.3 MEM Management << ---------------------------- */
+
+
+

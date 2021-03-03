@@ -25,6 +25,8 @@
 #include <stdint.h>
 #include "list.h"
 
+
+
 /* Hash element. */
 struct hash_elem {
 	struct list_elem list_elem;
@@ -97,4 +99,5 @@ uint64_t hash_bytes (const void *, size_t);
 uint64_t hash_string (const char *);
 uint64_t hash_int (int);
 
+#include "vm/vm.h"
 #endif /* lib/kernel/hash.h */

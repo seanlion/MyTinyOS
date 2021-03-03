@@ -143,7 +143,11 @@ struct thread {
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
-	uintptr_t rsp;
+
+	/* ---------------------- >> Project.3 Stack >> ---------------------------- */
+	uint64_t t_rsp;
+	void * stack_bottom;
+	/* ---------------------- << Project.3 Stack << ---------------------------- */
 #endif
 
 	/* Owned by thread.c. */

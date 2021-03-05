@@ -58,7 +58,7 @@ static long long user_ticks;   /* # of timer ticks in user programs. */
 /* ------------------------------ project1 --------------------- */
 
 /* Scheduling. */
-#define TIME_SLICE 4		  /* # of timer ticks to give each thread. */
+#define TIME_SLICE 6		  /* # of timer ticks to give each thread. */
 static unsigned thread_ticks; /* # of timer ticks since last yield. */
 
 /* If false (default), use round-robin scheduler.

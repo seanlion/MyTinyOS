@@ -377,6 +377,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 					// printf("supplemental_page_table_copy :: case 2 :: 33333333333333 \n");
 					if (vm_do_claim_page(child_page) == 0){
 						// printf("supplemental_page_table_copy :: case 2 :: 444444444444444 \n");
+						lock_release(&spt_lock);
 						return false ;
 						}
 					// memmove(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 
@@ -403,6 +404,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 					// printf("supplemental_page_table_copy :: case 2 :: 33333333333333 \n");
 					if (vm_do_claim_page(child_page) == 0){
 						// printf("supplemental_page_table_copy :: case 2 :: 444444444444444 \n");
+						lock_release(&spt_lock);
 						return false ;
 						}
 					memcpy(child_page->frame->kva, parent_page->frame->kva, PGSIZE); 

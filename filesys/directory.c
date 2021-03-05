@@ -1,4 +1,5 @@
 #include "filesys/directory.h"
+#include "filesys/fat.h"
 #include <stdio.h>
 #include <string.h>
 #include <list.h>
@@ -46,7 +47,7 @@ dir_open (struct inode *inode) {
  * Return true if successful, false on failure. */
 struct dir *
 dir_open_root (void) {
-	return dir_open (inode_open (ROOT_DIR_SECTOR));
+	return dir_open (inode_open (cluster_to_sector(ROOT_DIR_CLUSTER)));
 }
 
 /* Opens and returns a new directory for the same inode as DIR.
@@ -159,6 +160,7 @@ dir_add (struct dir *dir, const char *name, disk_sector_t inode_sector) {
 	success = inode_write_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
 
 done:
+	// printf("dir_add :: success :: %d\n", success);
 	return success;
 }
 

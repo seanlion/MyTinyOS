@@ -127,10 +127,11 @@ fat_create (void) {
 	// Set up ROOT_DIR_CLST
 	fat_put (ROOT_DIR_CLUSTER, EOChain);
 
-	// Fill up ROOT_DIR_CLUSTER region with 0
+	// Fill uep ROOT_DIR_CLUSTER region with 0
 	uint8_t *buf = calloc (1, DISK_SECTOR_SIZE);
 	if (buf == NULL)
 		PANIC ("FAT create failed due to OOM");
+	inode_create(cluster_to_sector(ROOT_DIR_CLUSTER),500);
 	disk_write (filesys_disk, cluster_to_sector (ROOT_DIR_CLUSTER), buf);
 	free (buf);
 }
@@ -153,8 +154,8 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
-	fat_fs->fat_length = fat_fs->bs.total_sectors / SECTORS_PER_CLUSTER;
-	fat_fs->data_start = fat_fs->bs.fat_start + 1;
+	fat_fs->data_start = fat_fs->bs.fat_start + fat_fs->bs.fat_sectors;
+	fat_fs->fat_length = (fat_fs->bs.total_sectors - fat_fs->data_start) / SECTORS_PER_CLUSTER;
 	fat_fs->last_clst = fat_fs->fat_length - 1;
 	lock_init(&fat_fs->write_lock);
 }
@@ -232,6 +233,13 @@ disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	if (clst < 0)
-		return 0;
-	return clst;
+		return fat_fs->data_start;
+	return clst + fat_fs->data_start;
+}
+
+/* Covert a sector # to a cluster number. */
+cluster_t 
+sector_to_clst (disk_sector_t sector) {
+
+
 }

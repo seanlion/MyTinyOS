@@ -95,18 +95,7 @@ inode_create (disk_sector_t sector, off_t length) {
 			}
 		}
 		disk_inode->last = origin_clst;
-		// printf("inode_create :: sector :: %d\n", sector);
-		// printf("inode_create :: disk_inode->length :: %d\n", disk_inode->length);
-		// printf("inode_create :: disk_inode->start :: %d\n", disk_inode->start);
-		// printf("inode_create :: disk_inode->last :: %d\n", disk_inode->last);
-		// printf("inode_create :: disk_inode->magic :: %d\n\n", disk_inode->magic);
 		disk_write (filesys_disk, sector, disk_inode);
-		// cluster_t origin_clst_for_0 = disk_inode->start;
-		// static char zeros[DISK_SECTOR_SIZE];
-		// for (size_t i = 0; i < sectors; i++) {
-		// 	disk_write (filesys_disk, origin_clst_for_0, zeros);
-		// 	origin_clst_for_0 = fat_get(origin_clst_for_0);
-		// }
 		free (disk_inode);
 	}
 	else {
@@ -176,12 +165,11 @@ inode_close (struct inode *inode) {
 		list_remove (&inode->elem);
 		/* Deallocate blocks if removed. */
 		if (inode->removed) {
+			// printf("inode_close 22222 || inode->sector %d\n", inode->sector);
 			fat_remove_chain(inode->data.start, 0);
 			fat_put(sector_to_cluster(inode->sector), 0);
 		}
-		// printf("inode_close 22222 || inode->sector %d\n", inode->sector);
 		free (inode); 
-		// printf("inode_close  || inode->sector %d\n", inode->sector);
 	}
 }
 /* Marks INODE to be deleted when it is closed by the last caller who
@@ -259,15 +247,6 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		off_t inode_left = inode_length (inode) - offset;
 		int sector_left = DISK_SECTOR_SIZE - sector_ofs;
 		int min_left = inode_left < sector_left ? inode_left : sector_left;
-		// printf("inode_write_at :: inode_length (inode) :: %d\n", inode_length (inode)); 
-		// printf("inode_write_at :: inode_length (inode) :: %d\n", inode_length (inode)); 
-		// printf("inode_write_at :: inode_length (inode) :: %d\n", inode_length (inode)); 
-		// printf("inode_write_at :: inode_length (inode) :: %d\n", inode_length (inode)); 
-		// printf("inode_write_at :: offset :: %d\n", offset); 
-		// printf("inode_write_at :: inode_left :: %d\n", inode_left); 
-		// printf("inode_write_at :: sector_left :: %d\n", sector_left); 
-		// printf("inode_write_at :: min_left :: %d\n", min_left); 
-		// printf("inode_write_at :: size :: %d\n", size); 
 		/* Number of bytes to actually write into this sector. */
 		int chunk_size = size < min_left ? size : min_left;
 		// printf("inode_write_at :: chunk_size :: %d\n", chunk_size); 

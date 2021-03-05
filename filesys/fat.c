@@ -169,28 +169,42 @@ fat_create_chain (cluster_t clst) {
 }
 /* Remove the chain of clusters starting from CLST.
  * If PCLST is 0, assume CLST as the start of the chain. */
+
+
+
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	/* TODO: Your code goes here. */
 	if (clst == 0) 
 		return;
+	// printf("fat_remove_chain 11111\n");
 	if (pclst != 0)
 		ASSERT(fat_get(pclst) == clst);
-	cluster_t curr_clst = fat_get(clst);
+	// printf("fat_remove_chain 22222\n");
+
+	cluster_t curr_clst = clst;
+	// cluster_t curr_clst = clst;
 	cluster_t next_clst;
-	if (pclst == 0) {
-		fat_put(clst, 0);
-	}
-	else {
-		fat_put(clst, -1);
-	}
-	while (curr_clst != EOChain)
+	// printf("fat_remove_chain 33333\n");
+
+	// printf("fat_remove_chain 444444\n");
+
+	while (fat_get(curr_clst) != EOChain && fat_get(curr_clst) !=0)
 	{
 		next_clst = fat_get(curr_clst);
 		fat_put(curr_clst, 0);
 		curr_clst = next_clst;
 	}
+	// printf("fat_remove_chain 55555555\n");
+
 	fat_put(curr_clst, 0);
+	// printf("fat_remove_chain 666666666\n");
+	if (pclst == 0) {
+		fat_put(clst, 0);
+	}
+	else {
+		fat_put(clst, EOChain);
+	}
 }
 /* Update a value in the FAT table. */
 void
@@ -217,5 +231,6 @@ cluster_t
 sector_to_cluster (disk_sector_t sector) {
 	if (sector < fat_fs->data_start)
 		return -1;
-	return (fat_fs->data_start - sector) / SECTORS_PER_CLUSTER;
+	// return (fat_fs->data_start - sector) / SECTORS_PER_CLUSTER;
+	return (sector - fat_fs->data_start) / SECTORS_PER_CLUSTER;
 }

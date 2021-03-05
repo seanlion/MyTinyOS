@@ -20,13 +20,13 @@ filesys_init (bool format) {
 		PANIC ("hd0:1 (hdb) not present, file system initialization failed");
 	inode_init ();
 #ifdef EFILESYS
-	printf("filesys init 1111\n");
+	// printf("filesys init 1111\n");
 	fat_init ();
 	if (format)
 		do_format ();
-	printf("filesys init 222\n");
+	// printf("filesys init 222\n");
 	fat_open ();
-	printf("filesys init 3333\n");
+	// printf("filesys init 3333\n");
 #else
 	/* Original FS */
 	free_map_init ();

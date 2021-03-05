@@ -33,6 +33,7 @@
 #include "vm/vm.h"
 #include "hash.h"
 #endif
+
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
@@ -273,10 +274,12 @@ __do_fork (void *aux) {
 	if (succ)
         /*-------------------------- project.2-Process  -----------------------------*/
         if_.R.rax = 0;
+		// printf("---debug// do_fork // before do_iret\n");
         /*-------------------------- project.2-Process  -----------------------------*/
 		do_iret (&if_);
 error:
     /*-------------------------- project.2-Process  -----------------------------*/
+	// printf("---debug// do_fork // ERROR\n");
     sema_up(&parent->sema_child_load);
     /*-------------------------- project.2-oom  -----------------------------*/
     current->fork_fail = true;
@@ -321,6 +324,7 @@ process_exec (void *f_name) {
 #ifdef VM // table_kill에서 hash_destroy를 쓰기 때문에 exec시 init을 다시 해줘야 함.
 	supplemental_page_table_init(&thread_current()->spt);
 #endif
+
 
     /*-------------------------- project.2-Parsing -----------------------------*/
 	char *token, *ptr, *last;
@@ -407,6 +411,9 @@ process_wait (tid_t child_tid UNUSED) {
 /* Free the current process's resources. */
 static void
 process_cleanup (void) {
+	// printf("---debug//\n");
+	// printf("---debug// process_cleanup // entry\n");
+	// printf("---debug//\n");
 	struct thread *curr = thread_current ();
 
 // #ifdef VM
@@ -448,6 +455,7 @@ process_activate (struct thread *next) {
  * Stores the executable's entry point into *RIP
  * and its initial stack pointer into *RSP.
  * Returns true if successful, false otherwise. */
+ //로드
 static bool
 load (const char *file_name, struct intr_frame *if_) {
 	struct thread *t = thread_current ();
@@ -724,12 +732,12 @@ install_page (void *upage, void *kpage, bool writable) {
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
 
+//레이지
 static bool
 lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
-
 	struct load_aux *tmp_aux = (struct load_aux *)aux;
 
 	if(page->frame == NULL){
@@ -763,6 +771,7 @@ lazy_load_segment (struct page *page, void *aux) {
  *
  * Return true if successful, false if a memory allocation error
  * or disk read error occurs. */
+ //로드 세그먼트
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes, bool writable) {
@@ -778,7 +787,14 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		 * and zero the final PAGE_ZERO_BYTES bytes. */
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
-
+		// printf("---debug//\n");
+		// printf("---debug// load_segment // page_read_byte : %d \n", page_read_bytes);
+		// printf("---debug// load_segment // page_zerobyte : %d \n", page_zero_bytes);
+		// printf("---debug// load_segment // offset : %d \n", ofs);
+		// printf("---debug// load_segment // upage : %p \n", upage);
+		// printf("---debug// load_segment // writable : %d \n", writable);
+		// printf("---debug//\n");
+		// printf("---debug// load_segment // inode : %p \n", file->inode);
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		struct load_aux *tmp_aux = malloc(sizeof(struct load_aux));
 		tmp_aux->file = reopen_file;
@@ -787,6 +803,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		tmp_aux->zero_bytes = page_zero_bytes;
 		tmp_aux->writable = writable;
 		// printf("upage address in load_segment: %p\n", upage);
+
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, tmp_aux))
 			{
@@ -799,11 +816,19 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		zero_bytes -= page_zero_bytes;
 		ofs += PGSIZE;  //! read_byte? 비교 필요
 		upage += PGSIZE;
+		/* ---------------------- >> Project.3 Anony >> ---------------------------- */
+        ofs += PGSIZE;
+		/* ---------------------- << Project.3 Anony << ---------------------------- */
+
 	}
+
+
+
 	return true;
 }
 
 /* Create a PAGE of stack at the USER_STACK. Return true on success. */
+//셋업스택
 static bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
@@ -822,6 +847,8 @@ setup_stack (struct intr_frame *if_) {
 	}
 	return success;		
 }
+
+
 #endif /* VM */
 
 
@@ -898,7 +925,7 @@ struct thread *get_child_process(int pid) {
 void remove_child_process(struct thread *cp) {
     struct list_elem* remove_elem = &cp->child_elem;
     list_remove(remove_elem);
-	list_remove(&cp->elem);
+	// list_remove(&cp->elem);
     palloc_free_page(cp);
 }
 
@@ -963,6 +990,7 @@ void process_close_file(int fd) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 void process_exit(void) {
+	// printf("---debug// process_exit // entry\n");
     struct thread *t = thread_current();
     t->is_exit = true;
 #ifdef VM

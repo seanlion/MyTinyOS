@@ -85,6 +85,13 @@ void
 syscall_handler (struct intr_frame *f UNUSED) {
 	thread_current()->rsp = f->rsp; // 커널 스택의 rsp 쓰기전에 user stack의 rsp 저장.
     uint64_t number = f->R.rax;
+    /* ---------------------- >> Project.3 Stack >> ---------------------------- */
+    // thread_current()->t_rsp = f->rsp;
+    // printf("---debug//\n" );
+    
+	// printf("---debug// syscall // rsp : %p \n", f->rsp );
+	// printf("---debug//\n" );
+    /* ---------------------- << Project.3 Stack << ---------------------------- */
 	switch (number) {
 		case SYS_HALT:
             // printf("halt\n");

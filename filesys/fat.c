@@ -112,9 +112,9 @@ fat_create (void) {
 		PANIC ("FAT creation failed");
 	// Set up ROOT_DIR_CLST
 	fat_put (ROOT_DIR_CLUSTER, EOChain);
-	// Fill uep ROOT_DIR_CLUSTER region with 0
+	// Fill up ROOT_DIR_CLUSTER region with 0
 	uint8_t *buf = calloc (1, DISK_SECTOR_SIZE);
-	if (buf == NULL)
+	if (buf == NULL) // 메모리 다 차서 calloc을 못해서
 		PANIC ("FAT create failed due to OOM");
 	inode_create(cluster_to_sector(ROOT_DIR_CLUSTER),500);
 	disk_write (filesys_disk, cluster_to_sector (ROOT_DIR_CLUSTER), buf);
@@ -169,9 +169,6 @@ fat_create_chain (cluster_t clst) {
 }
 /* Remove the chain of clusters starting from CLST.
  * If PCLST is 0, assume CLST as the start of the chain. */
-
-
-
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	/* TODO: Your code goes here. */

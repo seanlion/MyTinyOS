@@ -10,21 +10,25 @@
 
 /* A directory. */
 struct dir {
-	struct inode *inode;                /* Backing store. */
-	off_t pos;                          /* Current position. */
+	struct inode *inode;                /* 디렉터리의 in-memory indoe를 포인팅 : Backing store. */
+	off_t pos;                          /* 디렉터리 엔트리 오프셋: Current position. */
 };
 
 /* A single directory entry. */
+// 디렉토리 한 개 가리키는 엔트리
 struct dir_entry {
-	disk_sector_t inode_sector;         /* Sector number of header. */
+	disk_sector_t inode_sector;         /* inode의 디스크 블록 번호 : Sector number of header. */
 	char name[NAME_MAX + 1];            /* Null terminated file name. */
-	bool in_use;                        /* In use or free? */
+	bool in_use;                        /* dir_entry 사용 여부 : In use or free? */
 };
 
 /* Creates a directory with space for ENTRY_CNT entries in the
  * given SECTOR.  Returns true if successful, false on failure. */
+// 들어온 카운트 만큼 공간 가진 디렉토리 생성(파일 개수 몇개 넣을건지)
 bool
 dir_create (disk_sector_t sector, size_t entry_cnt) {
+	// ROOT_DIR_CLUSTER라는 섹터(inode의 위치)로 디렉토리를 가리키는 disk_inode를 만드는 과정(length는 entry_cnt * dir_entry 사이즈가 됨.)
+	// length만큼을 가진 파일(=디렉토리)로 그 파일에 대한 inode를 만들어서 FAT 테이블에 보관하는 것.
 	return inode_create (sector, entry_cnt * sizeof (struct dir_entry));
 }
 

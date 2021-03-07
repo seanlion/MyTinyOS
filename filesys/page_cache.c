@@ -15,6 +15,8 @@ static const struct page_operations page_cache_op = {
 
 tid_t page_cache_workerd;
 
+
+
 /* The initializer of file vm */
 void
 pagecache_init (void) {
@@ -27,14 +29,17 @@ page_cache_initializer (struct page *page, enum vm_type type, void *kva) {
 	/* Set up the handler */
 	page->operations = &page_cache_op;
 
+	return true;
 }
 
 /* Utilze the Swap in mechanism to implement readhead */
+// 캐쉬에 없으면, 디스크에서 읽어오기./  다음 블록을 page cache 안에 넣기 
 static bool
 page_cache_readahead (struct page *page, void *kva) {
 }
 
 /* Utilze the Swap out mechanism to implement writeback */
+// page cache 안에 dirty block(page?) 저장, cache full이면 victim 선정해서 해제(cache full인지 알려면? loopup 함수?)
 static bool
 page_cache_writeback (struct page *page) {
 }
@@ -48,3 +53,6 @@ page_cache_destroy (struct page *page) {
 static void
 page_cache_kworkerd (void *aux) {
 }
+
+
+/* page cache 꽉 찬지 살피는 look up 함수 만들어야 하나? palloc get page했는데 갖고올 수 있는거 없으면, evict?*/

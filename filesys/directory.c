@@ -6,6 +6,7 @@
 #include "filesys/inode.h"
 #include "filesys/fat.h"
 #include "threads/malloc.h"
+#include "threads/thread.h"
 
 
 /* A directory. */
@@ -29,7 +30,8 @@ bool
 dir_create (disk_sector_t sector, size_t entry_cnt) {
 	// ROOT_DIR_CLUSTER라는 섹터(inode의 위치)로 디렉토리를 가리키는 disk_inode를 만드는 과정(length는 entry_cnt * dir_entry 사이즈가 됨.)
 	// length만큼을 가진 파일(=디렉토리)로 그 파일에 대한 inode를 만들어서 FAT 테이블에 보관하는 것.
-	return inode_create (sector, entry_cnt * sizeof (struct dir_entry));
+	// directory라 is_dir =  1
+	return inode_create (sector, entry_cnt * sizeof (struct dir_entry), 1);
 }
 
 /* Opens and returns the directory for the given INODE, of which
@@ -82,6 +84,7 @@ dir_get_inode (struct dir *dir) {
  * if EP is non-null, and sets *OFSP to the byte offset of the
  * directory entry if OFSP is non-null.
  * otherwise, returns false and ignores EP and OFSP. */
+ /* 인자로 주어진 ep에 "" Entry의 주소 "" 를 반환시킨다. */
 static bool
 lookup (const struct dir *dir, const char *name,
 		struct dir_entry *ep, off_t *ofsp) {
@@ -192,6 +195,7 @@ dir_remove (struct dir *dir, const char *name) {
 
 	/* Erase directory entry. */
 	e.in_use = false;
+	/* inode, buffer, size, offset	-> e에 대한 정보를 적는다. */
 	if (inode_write_at (dir->inode, &e, sizeof e, ofs) != sizeof e)
 		goto done;
 
@@ -207,16 +211,185 @@ done:
 /* Reads the next directory entry in DIR and stores the name in
  * NAME.  Returns true if successful, false if the directory
  * contains no more entries. */
+// file_sys - subdir 때문에 수정
 bool
 dir_readdir (struct dir *dir, char name[NAME_MAX + 1]) {
 	struct dir_entry e;
 
 	while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e) {
 		dir->pos += sizeof e;
-		if (e.in_use) {
+		// file_sys - subdir | '.'과 '..'일 때 처리
+		if (e.in_use && (strcmp(e.name,".") != NULL && strcmp(e.name,"..") != NULL)) {
 			strlcpy (name, e.name, NAME_MAX + 1);
 			return true;
 		}
 	}
 	return false;
+}
+
+// file_sys - subdir
+struct dir* 
+parse_path(char* path_name, char* file_name){
+	if( path_name == NULL || file_name == NULL)
+		return NULL;
+	
+	if (strlen(path_name) == 0)
+		return NULL;
+
+	/* 계속해서 token으로 dir_lookup할 것이다. 
+		이 때, nextToken이 NULL이 되는 순간이 token이 filename이 되는 순간이다. */
+
+	/* Parse S into tokens separated by characters in DELIM.
+	If S is NULL, the saved pointer in SAVE_PTR is used as
+	the next starting point.  For example:
+		char s[] = "-abc-=-def";
+		char *sp;
+		x = strtok_r(s, "-", &sp);  // x = "abc", sp = "=-def"
+		x = strtok_r(NULL, "-=", &sp);  // x = "def", sp = NULL
+		x = strtok_r(NULL, "=", &sp);   // x = NULL
+			// s = "abc\0-def\0"
+	*/
+
+		struct dir* dir;
+		struct inode *inode;
+
+		/* 시작 dir 정하기 -- token 하면 구분이 불가능하다. */
+		if(path_name[0] == '/'){
+			dir = dir_open_root();
+		}
+		else{
+			dir = dir_reopen(thread_current()->curr_dir);
+		}
+
+
+		/* 이중 세트로 움직인다. -- 마지막에 file임을 구분하기 위해서 */
+		
+		char *token, *nextToken, *save_ptr;
+		bool check;
+		token = strtok_r(path_name, "/", &save_ptr);
+		nextToken = strtok_r(NULL, "/", &save_ptr);
+		
+		/* 주의 !!!!!!!!! sample.txt 도 .을 포함하고 있다 이녀석아 ㅠㅠ*/
+		/* '/' 없이 들어온 경우 */
+		if(nextToken == NULL){
+			/* 인자로 하나 들어온 경우 */
+			if(token != NULL){
+				/* ..만 들어온 경우 */
+				if(strcmp(token,"..") == NULL){
+					// printf("ONLY PARENT FOLDER\n");
+					if(dir->inode == inode_open (cluster_to_sector(ROOT_DIR_SECTOR))){
+						// printf("ROOT's PARENT\n");
+						inode_close(dir_get_inode(dir));
+					}
+					else{
+						check = dir_lookup(dir,token,&inode);
+						if(check == false){
+							// printf("THERE IS NO PARENT FILE\n");
+							return NULL;
+						}
+						// printf(" parent directory ..\n");
+						dir_close(dir);
+						dir = dir_open(inode);
+					}
+					*file_name = NULL;
+				}
+				/* . 만 들어온 경우 */
+				else if(strcmp(token,".") == NULL){
+					// printf("ONLY CURRENT FOLDER\n");
+					/* 위에서 했음 */
+					// dir = dir_reopen(thread_current()->curr_dir);
+					*file_name = NULL;
+				}
+				/* 파일 이름만 들어온 경우 */
+				else{
+					/* 이미 위에서 했음*/
+					// dir = dir_reopen(thread_current()->curr_dir);
+					memcpy(file_name, token, strlen(token)+1);
+					// printf("dir : %p, sector : %d\n",dir,inode_get_inumber(dir_get_inode(dir)));
+				}
+				// printf("FINAL FILE_NAME : %s\n",token);
+				return dir;
+			}
+			else{
+				*file_name = NULL;
+				return dir;
+			}
+		}
+		else{
+			while(token && nextToken){
+				/* 현재 directory */
+				// if( strcmp(token,".") == NULL || strchr(token, '.') == NULL){
+				if( strcmp(token,".") == NULL ){
+
+					// printf("curr directory \n");
+					// printf(" it might be .. / .\n");
+
+					/* .은 .을 꼭 열어야 하나? */
+					// dir = dir_reopen(thread_current()->curr_dir);
+				}
+				/* 부모 directory */
+				else if(strcmp(token,"..") == NULL){
+					
+					if(dir->inode == inode_open (cluster_to_sector(ROOT_DIR_SECTOR))){
+						// printf("ROOT's PARENT\n");
+						continue;
+					}
+
+					check = dir_lookup(dir,token,&inode);
+					if(check == false){
+						// printf("THERE IS NO PARENT FILE\n");
+						return NULL;
+					}
+					// printf(" parent directory ..\n");
+					dir_close(dir);
+					dir = dir_open(inode);
+					// printf("PARENT FILE SUCCESS\n");
+				}
+				else{
+					/* 해당 이름 폴더 찾기 */
+					// printf("FOLDER NAME : %s\n",token);
+					check = dir_lookup(dir,token,&inode);	/* inode의 주소임..........ㅠㅠㅠㅠ */
+					if(check == false){
+						// printf("There is no such File\n");
+						return NULL;
+					}
+					else if (inode_is_dir(inode) == false){
+						// printf("Inode is File\n");
+						// printf("sector : %d\n",inode_length(inode));
+						return NULL;
+					}
+					dir_close(dir); /* dir 은 calloc받고 있는 껍데기 녀석이다. 이동 시에는 free 시킨다. */
+					dir = dir_open(inode);
+				}
+				token = nextToken;
+				nextToken = strtok_r(NULL,"/", &save_ptr);
+			}
+			// printf("FINAL FILE_NAME : %s\n",token);
+			memcpy(file_name, token, strlen(token)+1);
+			return dir;
+	}	
+}
+
+
+bool
+dir_empty( struct inode* inode){
+
+	struct dir_entry e;
+	off_t ofs;
+
+	int cnt = inode_length(inode) / sizeof (e) ;
+	/* entry 개수만큼 돌면서 사용중인 entry가 있는지 살펴본다. */
+	
+	for(ofs = 0 ; cnt != 0 ; ofs+= sizeof(e)){
+		if( inode_read_at(inode, &e, sizeof e, ofs) == sizeof(e) ){
+			/* . 과 ..은 포함하지 않는다!!!!  */
+			if((strcmp(e.name,".") != NULL && strcmp(e.name,"..") !=NULL) && e.in_use == true){
+				// printf("e.name --------%s\n",e.name);
+				// printf("THRER IS SOME FILE **IN USE** IN THIS DIRECTORY\n");
+					return false;
+				}
+		}
+		cnt --;
+	}
+	return true;
 }

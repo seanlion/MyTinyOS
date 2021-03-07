@@ -15,8 +15,9 @@ struct inode_disk {
 	cluster_t start;                /* First data cluster(sector). */
 	cluster_t last;                	/* Last data cluster(sector). */
 	off_t length;                       /* File size in bytes. */
+	uint32_t is_dir;				/* directory 여부*/
 	unsigned magic;                     /* Magic number. */
-	uint32_t unused[124];               /* Not used. */
+	uint32_t unused[123];               /* Not used. */
 };
 /* Returns the number of sectors to allocate for an inode SIZE
  * bytes long. */
@@ -69,8 +70,9 @@ inode_init (void) {
  * disk.
  * Returns true if successful.
  * Returns false if memory or disk allocation fails. */
+// subdirectory 수정
 bool
-inode_create (disk_sector_t sector, off_t length) {
+inode_create (disk_sector_t sector, off_t length, bool is_dir) {
 	struct inode_disk *disk_inode = NULL;
 	bool success = true;
 	ASSERT (length >= 0);
@@ -84,6 +86,8 @@ inode_create (disk_sector_t sector, off_t length) {
 		size_t sectors = bytes_to_sectors (length);
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
+		// file_Sys - subDir
+		disk_inode->is_dir = is_dir;
 		// file_sys - FAT
 		disk_inode->start = fat_create_chain(0);
 		// printf("!!!!!!!!!!!!inode_create :: disk_inode->start :: %d\n", disk_inode->start);
@@ -329,4 +333,15 @@ inode_allow_write (struct inode *inode) {
 off_t
 inode_length (const struct inode *inode) {
 	return inode->data.length;
+}
+// file_sys - subdir | syscall(is_dir)에 활용됨.
+bool inode_is_dir (const struct inode *inode){
+	bool result;
+	result = inode->data.is_dir;
+	return result;
+}
+
+int
+inode_get_open_cnt(const struct inode *inode){
+	return inode->open_cnt;
 }

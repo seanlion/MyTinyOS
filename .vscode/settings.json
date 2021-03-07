@@ -24,6 +24,9 @@
         "synch.h": "c",
         "thread.h": "c",
         "algorithm": "c",
-        "disk.h": "c"
+        "disk.h": "c",
+        "stdio.h": "c",
+        "process.h": "c",
+        "inode.h": "c"
     }
 }

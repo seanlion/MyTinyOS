@@ -291,7 +291,8 @@ int
 process_exec (void *f_name) {
     /*-------------------------- project.2-Parsing -----------------------------*/
 	char *file_name = f_name;
-    char *file_static_name[48];
+    char *file_static_name[46];
+    // char *file_static_name[64];
     memcpy(file_static_name, file_name, strlen(file_name)+1);
 	if (file_static_name == NULL)
 		return -1;
@@ -902,18 +903,6 @@ void remove_child_process(struct thread *cp) {
     palloc_free_page(cp);
 }
 
-// void remove_child_process(struct thread *cp) {
-//     struct list_elem* remove_elem = &cp->child_elem;
-// 	if (!list_empty(&cp->my_child)){
-//     	list_remove(remove_elem);
-// 	}
-// 	list_remove(&cp->elem);
-// 	// if (!list_empty(&cp->donations))
-// 	// {
-// 	// 	list_remove(&cp->donation_elem);
-// 	// }
-//     palloc_free_page(cp);
-// }
 /*-------------------------- project.2-Process -----------------------------*/
 
 
@@ -922,9 +911,11 @@ void remove_child_process(struct thread *cp) {
 int process_add_file(struct file *f) {
 
 	struct thread *curr = thread_current();
-    if (curr->next_fd > 63) {
+    // if (curr->next_fd > 511) { // filesys dir-rm-tree 때문에 변경
+    if (curr->next_fd > 63) { 
         file_close(f);
-        return -1;
+        // return -1;
+		return -1; // filesys dir-rm-tree 때문에 해봄
     }
 	// printf("process add file next fd? %d\n", curr->next_fd);
 	curr->fd_table[curr->next_fd] = f;
@@ -968,7 +959,7 @@ void process_exit(void) {
 #ifdef VM
 	supplemental_page_table_kill (&t->spt);
 #endif
-// #ifdef VM
+// #ifdef VM - tongky's solution
 //     if (!hash_empty(&t->spt.vm)){
 //         struct hash_iterator i;
 //         hash_first(&i, &t->spt.vm);
@@ -982,14 +973,18 @@ void process_exit(void) {
 //         }
 //     }
 // #endif
-    for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
+    // for (t->next_fd; t->next_fd >= 2 ; t->next_fd --)
+    for (int fd = t->next_fd-1; fd>=2; fd --)
     {
-        process_close_file(t->next_fd);
+        // process_close_file(t->next_fd);
+        process_close_file(fd);
 				
     }
     // palloc_free_page(t->fd_table);
     file_close(t->running_file);
     sema_up(&t->sema_exit);
+	// file_sys - subdir | 이거 하니까 근데 터진다..
+	// free(&t->curr_dir);
     process_cleanup();
 
 }

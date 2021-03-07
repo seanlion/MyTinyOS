@@ -119,13 +119,15 @@ struct thread {
     int exit_status;
 	struct intr_frame fork_tf;
     int next_fd;
-    // struct file* fd_table[512];
+    // struct file* fd_table[512]; // fd가 64보단 많이 들어갈 수 있어야 함.
     struct file* fd_table[64];
 	 /*-------------------------- project.2-Denying write -----------------------------*/
 	struct file* running_file;
 
     /*-------------------------- project.2-Parsing -----------------------------*/
 
+	/* project 4 filesys- subdir*/
+	struct dir* curr_dir;
 
     
 
@@ -134,11 +136,6 @@ struct thread {
 	uint64_t *pml4;                     /* Page map level 4 */
     /*-------------------------- project.2-Process -----------------------------*/
     bool fork_fail;
-    /*-------------------------- project.2-Process -----------------------------*/
-
-
-
-
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */

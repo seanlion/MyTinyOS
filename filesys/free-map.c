@@ -69,7 +69,8 @@ free_map_close (void) {
 void
 free_map_create (void) {
 	/* Create inode. */
-	if (!inode_create (FREE_MAP_SECTOR, bitmap_file_size (free_map)))
+	// file_sys - dir | file 만드는거라 is_dir = 0
+	if (!inode_create (FREE_MAP_SECTOR, bitmap_file_size (free_map),0))
 		PANIC ("free map creation failed");
 
 	/* Write bitmap to file. */

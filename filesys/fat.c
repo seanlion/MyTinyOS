@@ -116,7 +116,9 @@ fat_create (void) {
 	uint8_t *buf = calloc (1, DISK_SECTOR_SIZE);
 	if (buf == NULL) // 메모리 다 차서 calloc을 못해서
 		PANIC ("FAT create failed due to OOM");
-	inode_create(cluster_to_sector(ROOT_DIR_CLUSTER),500);
+	// file_sys - dir 루트 디렉토리 만들때?
+	// inode_create(cluster_to_sector(ROOT_DIR_CLUSTER),500,1 );
+	dir_create(cluster_to_sector(ROOT_DIR_CLUSTER),16);
 	disk_write (filesys_disk, cluster_to_sector (ROOT_DIR_CLUSTER), buf);
 	free (buf);
 }

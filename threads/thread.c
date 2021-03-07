@@ -15,7 +15,7 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
-
+#include "filesys/directory.h"
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -148,6 +148,8 @@ void thread_init(void)
 	init_thread(initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid();
+	// file_sys - subdir
+	initial_thread->curr_dir = NULL;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -225,6 +227,11 @@ tid_t thread_create(const char *name, int priority,
 	/* Initialize thread. */
 	init_thread(t, name, priority);
 	tid = t->tid = allocate_tid();
+
+	// file_sys - subdir
+	if(thread_current()->curr_dir != NULL){
+		t->curr_dir = dir_reopen(thread_current()->curr_dir);
+	}
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */

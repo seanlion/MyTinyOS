@@ -1,21 +1,21 @@
-#include "userprog/syscall.h"
-#include "userprog/process.h"
 #include <stdio.h>
 #include <list.h>
 #include <syscall-nr.h>
-#include "filesys/filesys.h"
-#include "filesys/file.h"
-#include "filesys/inode.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/synch.h"
 #include "threads/loader.h"
 #include "threads/palloc.h"
 #include "threads/mmu.h"
-#include "userprog/gdt.h"
 #include "threads/flags.h"
+#include "userprog/syscall.h"
+#include "userprog/process.h"
+#include "userprog/gdt.h"
 #include "vm/vm.h"
 #include "vm/file.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
+#include "filesys/inode.h"
 #include "filesys/directory.h"
 #include "filesys/fat.h"
 
@@ -52,7 +52,11 @@ void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
 void munmap (void *addr);
 void check_user(void* addr,struct intr_frame *f );
 void check_user_write(void* addr,struct intr_frame *f );
-
+bool isdir(int fd);
+bool chdir(const char* dir);
+bool mkdir(const char* dir);
+bool readdir(int fd, char *name);
+int inumber (int fd);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -156,6 +160,22 @@ syscall_handler (struct intr_frame *f UNUSED) {
         case SYS_MUNMAP:
             munmap(f->R.rdi);
             break;
+        /* file_sys - subdir | 만든 시스템 콜 추가*/
+        case SYS_CHDIR:
+        f->R.rax = chdir((const char*)f->R.rdi);
+        break;
+        case SYS_MKDIR:
+            f->R.rax = mkdir((const char*)f->R.rdi);
+            break;
+        case SYS_READDIR:
+            f->R.rax = readdir((int)f->R.rdi,(char*)f->R.rsi);
+            break;
+        case SYS_ISDIR:
+            f->R.rax = isdir((int)f->R.rdi);
+            break;
+        case SYS_INUMBER:
+            f->R.rax = inumber((int)f->R.rdi);
+            break;
 		default:
             // printf("default\n");
 			thread_exit ();
@@ -255,6 +275,9 @@ int write(int fd, const void *buffer, unsigned size) {
         if (fd == 1) {
             putbuf(buffer, size);
             cur_size = sizeof(buffer);
+        }
+        else if (inode_is_dir(file_get_inode(f))){
+            // cur_size 그대로 리턴 되서 -1 됨.
         }
         else {
             cur_size = file_write(f, buffer, size);
@@ -478,3 +501,74 @@ void check_user(void* addr,struct intr_frame *f ){
 // 		exit(-1);
 // 	}
 // }
+
+bool isdir(int fd){
+    struct file *target_file = process_get_file(fd);
+    bool result = 0;
+    if (target_file){
+        if (inode_is_dir(file_get_inode(target_file))){
+            result = true;
+        }
+    }
+    else {
+        result = false;
+    }
+    return result;
+}
+
+bool chdir(const char* dir){
+    char cp_name[32];
+    char dir_name[NAME_MAX+1];
+    struct inode* target_inode;
+    struct dir *parent_dir;
+    bool check;
+
+    memcpy(cp_name, dir, strlen(dir)+1);
+    parent_dir = parse_path(cp_name, dir_name);
+    if(*dir_name == NULL){
+        thread_current()->curr_dir = parent_dir;
+        check = parent_dir != NULL;
+    }
+    else{
+        check = dir_lookup(parent_dir, dir_name, &target_inode);
+        if (check){
+            dir_close(thread_current()->curr_dir);
+            thread_current()->curr_dir = dir_open(target_inode);
+        }
+        else{
+            // 디렉토리가 없다?
+        }
+    }
+    return check;
+}
+
+bool mkdir(const char* dir){
+    return filesys_create_dir(dir);
+}
+
+bool readdir(int fd, char *name){
+    struct file *target = process_get_file(fd);
+    bool ret = false;
+    if(target) /* fd == 0 이 었으면, 0을 return 했을 것이다.*/
+    {   
+        /* if it is directory */
+        if(inode_is_dir(file_get_inode(target))){
+            /* directory 일 때만 ! */
+            // printf("readdir , name :  %s\n",name);
+            // struct dir* dir = dir_open(file_get_inode(target));
+            ret = dir_readdir((struct dir*)target, name);
+            // printf("name : %s\n",name);
+        }
+    }
+    return ret;
+}
+
+int inumber (int fd){
+    struct file *target = process_get_file(fd);
+    int ret = 0;
+    if(target) /* fd == 0 이 었으면, 0을 return 했을 것이다.*/
+    {   
+        ret = inode_get_inumber(file_get_inode(target));
+    }
+    return ret;
+}

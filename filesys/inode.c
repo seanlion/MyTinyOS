@@ -12,12 +12,13 @@
 /* On-disk inode.
  * Must be exactly DISK_SECTOR_SIZE bytes long. */
 struct inode_disk {
-	cluster_t start;                /* First data cluster(sector). */
-	cluster_t last;                	/* Last data cluster(sector). */
+	cluster_t start;                	/* First data cluster(sector). */
+	cluster_t last;                		/* Last data cluster(sector). */
 	off_t length;                       /* File size in bytes. */
-	uint32_t is_dir;				/* directory 여부*/
+	uint32_t type;						/* 0: file, 1: dir, 2: symlink */
 	unsigned magic;                     /* Magic number. */
-	uint32_t unused[123];               /* Not used. */
+	char path[128];						/* Symlink Path */
+	uint32_t unused[91];               	/* Not used. */
 };
 /* Returns the number of sectors to allocate for an inode SIZE
  * bytes long. */
@@ -72,7 +73,7 @@ inode_init (void) {
  * Returns false if memory or disk allocation fails. */
 // subdirectory 수정
 bool
-inode_create (disk_sector_t sector, off_t length, bool is_dir) {
+inode_create (disk_sector_t sector, off_t length, uint32_t type, char *path) {
 	struct inode_disk *disk_inode = NULL;
 	bool success = true;
 	ASSERT (length >= 0);
@@ -86,8 +87,12 @@ inode_create (disk_sector_t sector, off_t length, bool is_dir) {
 		size_t sectors = bytes_to_sectors (length);
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
-		// file_Sys - subDir
-		disk_inode->is_dir = is_dir;
+		// file_Sys - subDir, Symlink
+		disk_inode->type = type;
+		if (type == 2) {
+			memcpy (disk_inode->path, path, strlen(path) + 1);
+		}
+
 		// file_sys - FAT
 		disk_inode->start = fat_create_chain(0);
 		// printf("!!!!!!!!!!!!inode_create :: disk_inode->start :: %d\n", disk_inode->start);
@@ -334,14 +339,42 @@ off_t
 inode_length (const struct inode *inode) {
 	return inode->data.length;
 }
+
 // file_sys - subdir | syscall(is_dir)에 활용됨.
-bool inode_is_dir (const struct inode *inode){
-	bool result;
-	result = inode->data.is_dir;
+bool 
+inode_is_dir (const struct inode *inode){
+	bool result = false;
+	if (inode->data.type == 1) {
+		result = true;
+	}
+	return result;
+}
+
+bool 
+inode_is_file (const struct inode *inode){
+	bool result = false;
+	if (inode->data.type == 0) {
+		result = true;
+	}
+	return result;
+}
+
+bool 
+inode_is_symlink (const struct inode *inode){
+	bool result = false;
+	if (inode->data.type == 2) {
+		result = true;
+	}
 	return result;
 }
 
 int
 inode_get_open_cnt(const struct inode *inode){
 	return inode->open_cnt;
+}
+
+char *
+inode_get_path(const struct inode *inode){
+	// printf("inode_get_path :: inode_get_path(inode) :: %s\n",  inode->data.path);
+	return inode->data.path;
 }

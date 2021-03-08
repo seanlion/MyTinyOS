@@ -57,6 +57,7 @@ bool chdir(const char* dir);
 bool mkdir(const char* dir);
 bool readdir(int fd, char *name);
 int inumber (int fd);
+int symlink (char *target, char *linkpath);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -175,6 +176,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
             break;
         case SYS_INUMBER:
             f->R.rax = inumber((int)f->R.rdi);
+            break;
+        case SYS_SYMLINK:
+            f->R.rax = symlink((const char*)f->R.rdi,(const char*)f->R.rsi);
             break;
 		default:
             // printf("default\n");
@@ -296,7 +300,6 @@ int write(int fd, const void *buffer, unsigned size) {
 /*-------------------------- project.2-System call -----------------------------*/
 
 int open (const char *file) {
-    // printf("file은??? %p\n",file);
     // printf("open 이다... %d\n", thread_current()->tid);
    if (file)
     {   
@@ -306,7 +309,6 @@ int open (const char *file) {
         struct file * open_file = filesys_open(file);
         // printf("open에 들어왔다!!! 333\n");
 
-        // printf("open 시스템 콜에서 file은? %p\n", open_file);
         if (open_file)
         {
             if(!strcmp(file,thread_current()->name))
@@ -328,7 +330,6 @@ int open (const char *file) {
     {
         return -1;
     }
-
 }
 /*-------------------------- project.2-System call -----------------------------*/
 
@@ -532,11 +533,10 @@ bool chdir(const char* dir){
     else{
         check = dir_lookup(parent_dir, dir_name, &target_inode);
         if (check){
+            // 현재 디렉토리는 닫고
             dir_close(thread_current()->curr_dir);
+            // 이동할 디렉토리를 열어서 현재 디렉토리로 갱신
             thread_current()->curr_dir = dir_open(target_inode);
-        }
-        else{
-            // 디렉토리가 없다?
         }
     }
     return check;
@@ -571,4 +571,17 @@ int inumber (int fd){
         ret = inode_get_inumber(file_get_inode(target));
     }
     return ret;
+}
+
+int 
+symlink (char *target, char *linkpath) {
+    if (target == NULL || linkpath == NULL) {
+        return -1;
+    }
+
+    bool result = filesys_create_symlink(target, linkpath);
+    if (result) {
+        return 0;
+    }
+    return -1;
 }

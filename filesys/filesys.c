@@ -73,11 +73,11 @@ filesys_create (const char *name, off_t initial_size) {
 	bool success = (dir != NULL
 			&& inode_clst
 			// file만드는거라 is_dir 0으로 설정
-			&& inode_create (inode_sector, initial_size,false)
+			&& inode_create (inode_sector, initial_size, 0, NULL)
 			// name을 file_name으로 교체
 			&& dir_add (dir, file_name, inode_sector));
 	if (!success && inode_sector != 0) {
-		fat_put(inode_sector, 0);
+		fat_remove_chain(inode_clst, 0);
 	}
 	dir_close (dir);
 	return success;
@@ -106,7 +106,7 @@ bool filesys_create_dir(const char* dir){
 	bool success = (parent_dir != NULL
 			// && free_map_allocate (1, &inode_sector)
 			&& inode_sector
-			&& inode_create (inode_sector, 16, true)	/* 이 컨텐츠에 대한 inode를 inode_sector에 저장 */
+			&& inode_create (inode_sector, 16, 1, NULL)	/* 이 컨텐츠에 대한 inode를 inode_sector에 저장 */
 			&& dir_add (parent_dir, dir_name, inode_sector));	/* entry를 넣는과정 */
 	/* entry의 inode_sector : inode의 inode_sector*/
 
@@ -126,6 +126,47 @@ bool filesys_create_dir(const char* dir){
 	}
 
 	dir_close (parent_dir);
+
+	return success;
+}
+
+/* file_sys - symlink를 위한 함수*/
+bool filesys_create_symlink (char* target, char *linkpath) {
+
+	// ASSERT(strlen(dir) < 32);
+	/* const char name 방지 copy */
+	char cp_target[128];
+	char cp_link[128];
+
+	memcpy(cp_target, target, strlen(target)+1);
+	memcpy(cp_link, linkpath, strlen(linkpath)+1);
+
+	char target_name[NAME_MAX+1]; /* 2장 FAQ 참조 & disk 구조체 */
+	char link_name[NAME_MAX+1]; /* 2장 FAQ 참조 & disk 구조체 */
+
+	struct dir *parent_link = parse_path(cp_link, link_name);
+	
+	if(link_name == NULL){
+		return false;
+	}
+
+	/* inode를 하나의 sector에 저장한다. */
+	cluster_t inode_cluster;
+	disk_sector_t inode_sector;
+	
+	inode_cluster = fat_create_chain(0);
+	inode_sector = cluster_to_sector(inode_cluster);
+	bool success = (parent_link != NULL
+			// && free_map_allocate (1, &inode_sector)
+			&& inode_sector
+			&& inode_create (inode_sector, 0, 2, cp_target)	/* 이 컨텐츠에 대한 inode를 inode_sector에 저장 */
+			&& dir_add (parent_link, link_name, inode_sector));	/* entry를 넣는과정 */
+	/* entry의 inode_sector : inode의 inode_sector*/
+
+	if (!success && inode_sector != 0)
+		fat_remove_chain(inode_cluster, 0);
+
+	dir_close (parent_link);
 
 	return success;
 }
@@ -160,6 +201,33 @@ filesys_open (const char *name) {
 
 	if (dir != NULL)
 		dir_lookup (dir, file_name, &inode);
+
+	while (inode && inode_is_symlink(inode)) {
+		struct dir* origin_curr_dir = thread_current()->curr_dir;
+		struct dir* tmp_dir;
+		char link_file[128];
+	// printf("filesys_open 4-1 \n");
+
+		/* 잠시 교체후 parsing 해온다. */ 
+		thread_current()->curr_dir = dir;
+
+		tmp_dir = parse_path(inode_get_path(inode), link_file);
+
+		/* NEXT TOKEN 건드리지 않고, 현재 token만 link_file로 업데이트 */
+		/* curr_dir : e
+		ex) a/symlink/file , symlink : c/d
+			dir : a, token : symlink, nextToken : file
+			--> dir : c, token : d, nextToken : file
+			--> dir : d, token : file, nextToken : NULL
+		*/
+		dir_close(thread_current()->curr_dir);	/* 기존 dir 닫기 : 이동했으니까 */
+		thread_current()->curr_dir = origin_curr_dir;
+		dir = tmp_dir;
+
+		inode_close(inode); //? 왜 하지?
+		dir_lookup(dir, link_file, &inode);
+	}
+
 	dir_close (dir);
 
 	/* 얘는 inode 닫으면 안됨 -- file에 inode 갖다 붙이는 구조  */
@@ -192,18 +260,11 @@ filesys_remove (const char *name) {
 	// 해당 디렉토리에서 file name이 없으면
 	ASSERT(inode!=NULL);
 
-	if (inode_get_open_cnt(inode)>1){
-		inode_close(inode);
-		return false;
-	}
-	// printf("filesys_remove 4444 \n");
+	
 	if (inode && inode_is_dir(inode)){
-	// printf("filesys_remove 5555 \n");
-		if(dir_empty(inode) == false){
-			// 디렉토리가 비어있지않은 경우
-	// printf("filesys_remove 5555--1 \n");
+		// 디렉토리가 비어있지않은 경우
+		if (inode_get_open_cnt(inode) > 1 || dir_empty(inode) == false){
 			inode_close(inode);
-	// printf("filesys_remove 5555--2 \n");
 			return false;
 		}
 	}

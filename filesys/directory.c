@@ -31,7 +31,7 @@ dir_create (disk_sector_t sector, size_t entry_cnt) {
 	// ROOT_DIR_CLUSTER라는 섹터(inode의 위치)로 디렉토리를 가리키는 disk_inode를 만드는 과정(length는 entry_cnt * dir_entry 사이즈가 됨.)
 	// length만큼을 가진 파일(=디렉토리)로 그 파일에 대한 inode를 만들어서 FAT 테이블에 보관하는 것.
 	// directory라 is_dir =  1
-	return inode_create (sector, entry_cnt * sizeof (struct dir_entry), 1);
+	return inode_create (sector, entry_cnt * sizeof (struct dir_entry), 1, NULL);
 }
 
 /* Opens and returns the directory for the given INODE, of which
@@ -158,7 +158,7 @@ dir_add (struct dir *dir, const char *name, disk_sector_t inode_sector) {
 	 * read due to something intermittent such as low memory. */
 	for (ofs = 0; inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
 			ofs += sizeof e)
-		if (!e.in_use)
+		if (!e.in_use)// entry가 free인지 보기
 			break;
 
 	/* Write slot. */
@@ -218,7 +218,7 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1]) {
 
 	while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e) {
 		dir->pos += sizeof e;
-		// file_sys - subdir | '.'과 '..'일 때 처리
+		// file_sys - subdir | '.'과 '..'이 아닐 때 처리
 		if (e.in_use && (strcmp(e.name,".") != NULL && strcmp(e.name,"..") != NULL)) {
 			strlcpy (name, e.name, NAME_MAX + 1);
 			return true;
@@ -232,13 +232,10 @@ struct dir*
 parse_path(char* path_name, char* file_name){
 	if( path_name == NULL || file_name == NULL)
 		return NULL;
-	
 	if (strlen(path_name) == 0)
 		return NULL;
-
 	/* 계속해서 token으로 dir_lookup할 것이다. 
 		이 때, nextToken이 NULL이 되는 순간이 token이 filename이 되는 순간이다. */
-
 	/* Parse S into tokens separated by characters in DELIM.
 	If S is NULL, the saved pointer in SAVE_PTR is used as
 	the next starting point.  For example:
@@ -249,124 +246,142 @@ parse_path(char* path_name, char* file_name){
 		x = strtok_r(NULL, "=", &sp);   // x = NULL
 			// s = "abc\0-def\0"
 	*/
-
-		struct dir* dir;
-		struct inode *inode;
-
-		/* 시작 dir 정하기 -- token 하면 구분이 불가능하다. */
-		if(path_name[0] == '/'){
-			dir = dir_open_root();
-		}
-		else{
-			dir = dir_reopen(thread_current()->curr_dir);
-		}
-
-
-		/* 이중 세트로 움직인다. -- 마지막에 file임을 구분하기 위해서 */
-		
-		char *token, *nextToken, *save_ptr;
-		bool check;
-		token = strtok_r(path_name, "/", &save_ptr);
-		nextToken = strtok_r(NULL, "/", &save_ptr);
-		
-		/* 주의 !!!!!!!!! sample.txt 도 .을 포함하고 있다 이녀석아 ㅠㅠ*/
-		/* '/' 없이 들어온 경우 */
-		if(nextToken == NULL){
-			/* 인자로 하나 들어온 경우 */
-			if(token != NULL){
-				/* ..만 들어온 경우 */
-				if(strcmp(token,"..") == NULL){
-					// printf("ONLY PARENT FOLDER\n");
-					if(dir->inode == inode_open (cluster_to_sector(ROOT_DIR_SECTOR))){
-						// printf("ROOT's PARENT\n");
-						inode_close(dir_get_inode(dir));
-					}
-					else{
-						check = dir_lookup(dir,token,&inode);
-						if(check == false){
-							// printf("THERE IS NO PARENT FILE\n");
-							return NULL;
-						}
-						// printf(" parent directory ..\n");
-						dir_close(dir);
-						dir = dir_open(inode);
-					}
-					*file_name = NULL;
+	struct dir* dir;
+	struct inode *inode;
+	/* 시작 dir 정하기 -- token 하면 구분이 불가능하다. */
+	if(path_name[0] == '/'){
+		dir = dir_open_root();
+	}
+	else{
+		dir = dir_reopen(thread_current()->curr_dir);
+	}
+	/* 이중 세트로 움직인다. -- 마지막에 file임을 구분하기 위해서 */
+	char *token, *nextToken, *save_ptr;
+	bool check;
+	token = strtok_r(path_name, "/", &save_ptr);
+	nextToken = strtok_r(NULL, "/", &save_ptr);
+	// printf("!!! token : %s, nextToken : %s\n",token, nextToken);
+	/* 주의 !!!!!!!!! sample.txt 도 .을 포함하고 있다 이녀석아 ㅠㅠ*/
+	/* '/' 없이 들어온 경우 */
+	if(nextToken == NULL){
+		/* 인자로 하나 들어온 경우 */
+		if(token != NULL){
+			/* ..만 들어온 경우 */
+			if(strcmp(token,"..") == NULL){
+				// printf("ONLY PARENT FOLDER\n");
+				if(dir->inode == inode_open(cluster_to_sector(ROOT_DIR_SECTOR))){
+					// printf("ROOT's PARENT\n");
+					inode_close(dir_get_inode(dir));
 				}
-				/* . 만 들어온 경우 */
-				else if(strcmp(token,".") == NULL){
-					// printf("ONLY CURRENT FOLDER\n");
-					/* 위에서 했음 */
-					// dir = dir_reopen(thread_current()->curr_dir);
-					*file_name = NULL;
-				}
-				/* 파일 이름만 들어온 경우 */
 				else{
-					/* 이미 위에서 했음*/
-					// dir = dir_reopen(thread_current()->curr_dir);
-					memcpy(file_name, token, strlen(token)+1);
-					// printf("dir : %p, sector : %d\n",dir,inode_get_inumber(dir_get_inode(dir)));
-				}
-				// printf("FINAL FILE_NAME : %s\n",token);
-				return dir;
-			}
-			else{
-				*file_name = NULL;
-				return dir;
-			}
-		}
-		else{
-			while(token && nextToken){
-				/* 현재 directory */
-				// if( strcmp(token,".") == NULL || strchr(token, '.') == NULL){
-				if( strcmp(token,".") == NULL ){
-
-					// printf("curr directory \n");
-					// printf(" it might be .. / .\n");
-
-					/* .은 .을 꼭 열어야 하나? */
-					// dir = dir_reopen(thread_current()->curr_dir);
-				}
-				/* 부모 directory */
-				else if(strcmp(token,"..") == NULL){
-					
-					if(dir->inode == inode_open (cluster_to_sector(ROOT_DIR_SECTOR))){
-						// printf("ROOT's PARENT\n");
-						continue;
-					}
-
 					check = dir_lookup(dir,token,&inode);
 					if(check == false){
-						// printf("THERE IS NO PARENT FILE\n");
+						printf("THERE IS NO PARENT FILE\n");
 						return NULL;
 					}
 					// printf(" parent directory ..\n");
 					dir_close(dir);
 					dir = dir_open(inode);
-					// printf("PARENT FILE SUCCESS\n");
 				}
-				else{
-					/* 해당 이름 폴더 찾기 */
-					// printf("FOLDER NAME : %s\n",token);
-					check = dir_lookup(dir,token,&inode);	/* inode의 주소임..........ㅠㅠㅠㅠ */
-					if(check == false){
-						// printf("There is no such File\n");
-						return NULL;
-					}
-					else if (inode_is_dir(inode) == false){
-						// printf("Inode is File\n");
-						// printf("sector : %d\n",inode_length(inode));
-						return NULL;
-					}
-					dir_close(dir); /* dir 은 calloc받고 있는 껍데기 녀석이다. 이동 시에는 free 시킨다. */
-					dir = dir_open(inode);
-				}
-				token = nextToken;
-				nextToken = strtok_r(NULL,"/", &save_ptr);
+				*file_name = NULL;
+			}
+			/* . 만 들어온 경우 */
+			else if(strcmp(token,".") == NULL){
+				// printf("ONLY CURRENT FOLDER\n");
+				/* 위에서 했음 */
+				// dir = dir_reopen(thread_current()->curr_dir);
+				*file_name = NULL;
+			}
+			/* 파일 이름만 들어온 경우 */
+			else{
+				/* 이미 위에서 했음*/
+				// dir = dir_reopen(thread_current()->curr_dir);
+				memcpy(file_name, token, strlen(token)+1);
+				// printf("dir : %p, sector : %d\n",dir,inode_get_inumber(dir_get_inode(dir)));
 			}
 			// printf("FINAL FILE_NAME : %s\n",token);
-			memcpy(file_name, token, strlen(token)+1);
 			return dir;
+		}
+		else{
+			*file_name = NULL;
+			return dir;
+		}
+	}
+	else{
+		while(token && nextToken){
+			/* 현재 directory */
+			// if( strcmp(token,".") == NULL || strchr(token, '.') == NULL){
+			if( strcmp(token,".") == NULL ){
+				// printf("curr directory \n");
+				// printf(" it might be .. / .\n");
+				/* .은 .을 꼭 열어야 하나? */
+				// dir = dir_reopen(thread_current()->curr_dir);
+			}
+			/* 부모 directory */
+			else if(strcmp(token,"..") == NULL){
+				if(dir->inode == inode_open (cluster_to_sector(ROOT_DIR_SECTOR))){
+					// printf("ROOT's PARENT\n");
+					continue;
+				}
+				check = dir_lookup(dir,token,&inode);
+				if(check == false){
+					printf("THERE IS NO PARENT FILE\n");
+					return NULL;
+				}
+				// printf(" parent directory ..\n");
+				dir_close(dir);
+				dir = dir_open(inode);
+				// printf("PARENT FILE SUCCESS\n");
+			}
+			else{
+				/* 해당 이름 폴더 찾기 */
+				// printf("FOLDER NAME : %s\n",token);
+				check = dir_lookup(dir,token,&inode);	/* inode의 주소임..........ㅠㅠㅠㅠ */
+				if(check == false){
+					// printf("token : %s\n",token);
+					// printf("There is no such File\n");
+					// inode_close(inode);
+					return NULL;
+				}
+				else if (inode_is_file(inode)){
+					printf("Inode is File\n");
+					// printf("sector : %d\n",inode_length(inode));
+					inode_close(inode);
+					return NULL;
+				}
+				else if (inode_is_symlink(inode)){
+					// printf("LINK!\n");
+					struct dir* origin_curr_dir = thread_current()->curr_dir;
+					struct dir* tmp_dir;
+					char link_file[128];
+					char cp_path[128];
+					/* 잠시 교체후 parsing 해온다. */ 
+					thread_current()->curr_dir = dir;
+					memcpy(cp_path, inode_get_path(inode), strlen(inode_get_path(inode))+1);
+					tmp_dir = parse_path(cp_path, link_file);
+					/* NEXT TOKEN 건드리지 않고, 현재 token만 link_file로 업데이트 */
+					memcpy(token,link_file, strlen(link_file)+1);
+					/* 
+					ex) a/symlink/file , symlink : /a/c/d
+						dir : a, token : symlink, nextToken : file
+						--> dir : c, token : d, nextToken : file
+						--> dir : d, token : file, nextToken : NULL
+					*/
+					dir_close(thread_current()->curr_dir);	/* 기존 dir 닫기 : 이동했으니까 */
+					thread_current()->curr_dir = origin_curr_dir;
+					dir = tmp_dir;
+					continue;
+				}
+				dir_close(dir); /* dir 은 calloc받고 있는 껍데기 녀석이다. 이동 시에는 free 시킨다. */
+				dir = dir_open(inode);
+			}
+			// printf("token : %s, nextToken : %s\n",token,nextToken);
+			memcpy(token, nextToken, strlen(nextToken)+1);
+			nextToken = strtok_r(NULL,"/", &save_ptr);
+		}
+		// printf("FINAL FILE_NAME : %s\n",token);
+		memcpy(file_name, token, strlen(token)+1);
+		return dir;
 	}	
 }
 

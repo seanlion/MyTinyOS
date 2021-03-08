@@ -57,17 +57,26 @@ filesys_create (const char *name, off_t initial_size) {
 	// file_sys - subdir | name의 파일 경로 cp_name에 복사해서 경로 파싱
 	char file_name[NAME_MAX+1];
 	char cp_name[128];
-	memcpy(cp_name,name, strlen(name)+1);
+
+	if (strlen(name) > NAME_MAX) {
+		memcpy(cp_name,name, NAME_MAX+1);
+	}
+	else {
+		memcpy(cp_name,name, strlen(name)+1);
+	}
+	
 	struct dir *dir = parse_path(cp_name,file_name);
 
+	// printf("filesys_create :: 111111111111 \n");
 	if (*file_name == NULL){
 		return false;
 	}
 	
 	cluster_t inode_clst = fat_create_chain(0);
 	disk_sector_t inode_sector = cluster_to_sector(inode_clst);
-	// printf("filesys_create :: inode_sector :: %d\n", inode_sector);
 
+	// printf("filesys_create :: file_name :: %s\n", name);
+	// printf("filesys_create :: file_name :: %d\n", strlen(file_name));
 
 	// struct dir *dir = dir_open_root (); /* subdirectory 구현 후 parse_path하면 제거*/
 	bool success = (dir != NULL
@@ -76,10 +85,14 @@ filesys_create (const char *name, off_t initial_size) {
 			&& inode_create (inode_sector, initial_size, 0, NULL)
 			// name을 file_name으로 교체
 			&& dir_add (dir, file_name, inode_sector));
+	// printf("filesys_create :: success :: %d\n", success);
+	// printf("filesys_create :: 3333333333333 \n");
 	if (!success && inode_sector != 0) {
 		fat_remove_chain(inode_clst, 0);
 	}
+	// printf("filesys_create :: 44444444444444 \n");
 	dir_close (dir);
+	// printf("filesys_create :: 5555555555555 \n");
 	return success;
 }
 

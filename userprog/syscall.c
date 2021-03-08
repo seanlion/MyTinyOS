@@ -245,6 +245,8 @@ exit (int status) {
 /*-------------------------- project.2-System call -----------------------------*/
 bool create(const char *file , unsigned initial_size) {
 	// printf("create 이다... %d\n", thread_current()->tid);
+	// printf("create 이다... %s\n", file);
+	// printf("create 이다... %d\n", initial_size);
     if (file == NULL) 
         exit(-1);
     // printf("create에서 file inode 확인 %p\n", file->inode);
@@ -316,18 +318,20 @@ int open (const char *file) {
                     file_deny_write(open_file); 
                 }
             int result = process_add_file(open_file);
-            // printf("open에 들어왔다!!! 4444\n");
             lock_release(&filesys_lock);
+            // printf("open에 들어왔다!!! 4444\n");
             return result;
         }
         else
         {
+            // printf("open에 들어왔다!!! 5555\n");
             lock_release(&filesys_lock);
             return -1;
         }
     }
     else
     {
+        // printf("open에 들어왔다!!! 6666\n");
         return -1;
     }
 }

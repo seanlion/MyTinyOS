@@ -912,7 +912,7 @@ int process_add_file(struct file *f) {
 
 	struct thread *curr = thread_current();
     // if (curr->next_fd > 511) { // filesys dir-rm-tree 때문에 변경
-    if (curr->next_fd > 63) { 
+    if (curr->next_fd > 511) { 
         file_close(f);
         // return -1;
 		return -1; // filesys dir-rm-tree 때문에 해봄
@@ -980,7 +980,7 @@ void process_exit(void) {
         process_close_file(fd);
 				
     }
-    // palloc_free_page(t->fd_table);
+    palloc_free_page(t->fd_table);
     file_close(t->running_file);
     sema_up(&t->sema_exit);
 	// file_sys - subdir | 이거 하니까 근데 터진다..

@@ -141,6 +141,8 @@ dir_add (struct dir *dir, const char *name, disk_sector_t inode_sector) {
 	ASSERT (dir != NULL);
 	ASSERT (name != NULL);
 
+	// printf("dir_add :: name :: %s\n", name);
+	// printf("dir_add :: strlen (name) :: %d\n", strlen (name));
 	/* Check NAME for validity. */
 	if (*name == '\0' || strlen (name) > NAME_MAX)
 		return false;

@@ -120,7 +120,7 @@ struct thread {
 	struct intr_frame fork_tf;
     int next_fd;
     // struct file* fd_table[512]; // fd가 64보단 많이 들어갈 수 있어야 함.
-    struct file* fd_table[64];
+    struct file** fd_table;
 	 /*-------------------------- project.2-Denying write -----------------------------*/
 	struct file* running_file;
 

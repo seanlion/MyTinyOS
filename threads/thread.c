@@ -256,6 +256,7 @@ tid_t thread_create(const char *name, int priority,
 
     /*-------------------------- project.2-System Call -----------------------------*/
     t->next_fd = 2;
+    t->fd_table = palloc_get_page(PAL_ZERO);
     t->fd_table[0] = 1;
     t->fd_table[1] = 1;
     

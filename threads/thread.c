@@ -29,12 +29,10 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
-/* ------------------------------ project1 --------------------- */
-// THREAD_BLOCKED 상태의 스레드를 관리하기 위한 리스트 자료구조 추가
+/* THREAD_BLOCKED 상태의 스레드를 관리하기 위한 리스트 자료구조 추가*/
 static struct list sleep_list;
-// sleep_list에서 대기중인 스레드들의 wakeup_tick값 중 최소값을 저장
+/* sleep_list에서 대기중인 스레드들의 wakeup_tick값 중 최소값을 저장*/
 static int64_t next_tick_to_awake;
-/* ------------------------------ project1 --------------------- */
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -53,17 +51,11 @@ static long long idle_ticks;   /* # of timer ticks spent idle. */
 static long long kernel_ticks; /* # of timer ticks in kernel threads. */
 static long long user_ticks;   /* # of timer ticks in user programs. */
 
-/* ------------------------------ project1 --------------------- */
-
-/* ------------------------------ project1 --------------------- */
-
 /* Scheduling. */
 #define TIME_SLICE 4		  /* # of timer ticks to give each thread. */
 static unsigned thread_ticks; /* # of timer ticks since last yield. */
 
-/* If false (default), use round-robin scheduler.
-   If true, use multi-level feedback queue scheduler.
-   Controlled by kernel command-line option "-o mlfqs". */
+
 bool thread_mlfqs;
 
 static void kernel_thread(thread_func *, void *aux);
@@ -74,23 +66,18 @@ static void init_thread(struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule(void);
 static tid_t allocate_tid(void);
-/*-------------------------- project.1-Alarm_Clock -----------------------------*/
 void thread_sleep(int64_t);
 void thread_awake(int64_t);
 int64_t get_next_tick_to_awake(void);
 void update_next_tick_to_awake(int64_t);
 bool find_less(struct list_elem *, struct list_elem *, void *);
 void list_check_for_awake(struct list *, int64_t);
-/*-------------------------- project.1-Alarm_Clock -----------------------------*/
 
-/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-// 현재 수행중인 스레드와 가장 높은 우선순위의 스레드의 우선순위를 비교하여 스케줄링
+/* 현재 수행중인 스레드와 가장 높은 우선순위의 스레드의 우선순위를 비교하여 스케줄링 */
 void test_max_priority(void);
 
-// 인자로 주어진 스레드들의 우선순위를 비교
+/* 인자로 주어진 스레드들의 우선순위를 비교 */
 bool cmp_priority (const struct list_elem *, const struct list_elem *, void *);
-/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -137,12 +124,8 @@ void thread_init(void)
 	list_init(&ready_list);
 	
 	list_init(&destruction_req);
-	/*-------------------------- project.1 -----------------------------*/
-	// sleep_list 초기화
+	/* sleep_list 초기화 */
 	list_init(&sleep_list);
-	// next_tick_to_awake = INT64_MAX;
-	/*-------------------------- project.1 -----------------------------*/
-
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread();
 	init_thread(initial_thread, "main", PRI_DEFAULT);
@@ -237,7 +220,6 @@ tid_t thread_create(const char *name, int priority,
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
-    /*-------------------------- project.2-Process -----------------------------*/
     struct thread *par_t = thread_current();
     t->is_load = false;
     t->is_exit = false;
@@ -245,23 +227,12 @@ tid_t thread_create(const char *name, int priority,
     sema_init(&t->sema_exit, 0);
     list_push_back(&par_t->my_child, &t->child_elem);
     t->exit_status = 0;
-    /*-------------------------- project.2-Process -----------------------------*/
-
-    /*-------------------------- project.2-System Call -----------------------------*/
     t->next_fd = 2;
     t->fd_table[0] = 1;
     t->fd_table[1] = 1;
     
-    // t->fd_table = palloc_get_multiple(PAL_ZERO, fd);
-    /*-------------------------- project.2-System Call -----------------------------*/
-
-
-
-
 	/* Add to run queue. */
 	thread_unblock(t);
-	// list_insert_ordered(&ready_list, &t->elem, &cmp_priority, NULL);
-	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
   if (priority > thread_get_priority())
         thread_yield();
 		
@@ -299,10 +270,7 @@ void thread_unblock(struct thread *t)
 
 	old_level = intr_disable();
 	ASSERT(t->status == THREAD_BLOCKED);
-	// list_push_back(&ready_list, &t->elem);
-	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 	list_insert_ordered(&ready_list, &t->elem, cmp_priority, NULL);
-	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 
 	t->status = THREAD_READY;
 	intr_set_level(old_level);
@@ -348,7 +316,6 @@ void thread_exit(void)
 
 #ifdef USERPROG
 	process_exit();
-    // sema_up(&thread_current()->sema_exit);
 #endif
 
 	/* Just set our status to dying and schedule another process.
@@ -369,9 +336,7 @@ void thread_yield(void)
 		old_level = intr_disable();
 		if (curr != idle_thread)
 			{
-			/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 			list_insert_ordered(&ready_list, &curr->elem, cmp_priority, NULL);
-			/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 			}
 		do_schedule(THREAD_READY);
 		intr_set_level(old_level);
@@ -383,19 +348,10 @@ void thread_yield(void)
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {
-	// enum intr_level old_level = intr_disable();
-	// thread_current()->priority = new_priority;
 	thread_current()->init_priority = new_priority;
-	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-	// test_max_priority();
-	/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	refresh_priority();
-	// donate_priority();
 	test_max_priority();
-	// intr_set_level(old_level);
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
+
 }
 
 /* Returns the current thread's priority. */
@@ -407,27 +363,27 @@ int thread_get_priority(void)
 /* Sets the current thread's nice value to NICE. */
 void thread_set_nice(int nice UNUSED)
 {
-	/* TODO: Your implementation goes here */
+	/* TODO  */
 }
 
 /* Returns the current thread's nice value. */
 int thread_get_nice(void)
 {
-	/* TODO: Your implementation goes here */
+	/* TODO */
 	return 0;
 }
 
 /* Returns 100 times the system load average. */
 int thread_get_load_avg(void)
 {
-	/* TODO: Your implementation goes here */
+	/* TODO  */
 	return 0;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int thread_get_recent_cpu(void)
 {
-	/* TODO: Your implementation goes here */
+	/* TODO */
 	return 0;
 }
 
@@ -499,16 +455,11 @@ init_thread(struct thread *t, const char *name, int priority)
 	t->tf.rsp = (uint64_t)t + PGSIZE - sizeof(void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
-
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	t->init_priority = priority;
 	list_init(&t->donations);
 	t->wait_on_lock = NULL;
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
 
-    /*-------------------------- project.2-Process -----------------------------*/
     list_init(&t->my_child);
-    /*-------------------------- project.2-Process -----------------------------*/
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -633,17 +584,9 @@ thread_launch(struct thread *th)
 static void
 do_schedule(int status)
 {
-	// printf("\njoin : do_schedule\n");
 	ASSERT(intr_get_level() == INTR_OFF);
 	ASSERT(thread_current()->status == THREAD_RUNNING);
-    /*-------------------------- project.2-Process -----------------------------*/
-	// while (!list_empty(&destruction_req))
-	// {
-	// 	struct thread *victim =
-	// 		list_entry(list_pop_front(&destruction_req), struct thread, elem);
-	// 	palloc_free_page(victim);
-	// }
-    /*-------------------------- project.2-Process -----------------------------*/
+
 	thread_current()->status = status;
 	schedule();
 }
@@ -657,7 +600,6 @@ schedule(void)
 	ASSERT(intr_get_level() == INTR_OFF);
 	ASSERT(curr->status != THREAD_RUNNING);
 	ASSERT(is_thread(next));
-	/* Mark us as running. */
 	next->status = THREAD_RUNNING;
 
 	/* Start new time slice. */
@@ -677,12 +619,6 @@ schedule(void)
 		   currently used bye the stack.
 		   The real destruction logic will be called at the beginning of the
 		   schedule(). */
-		// if (curr && curr->status == THREAD_DYING && curr != initial_thread)
-		// {
-		// 	ASSERT(curr != next);
-		// 	list_push_back(&destruction_req, &curr->elem);
-		// }
-
 		/* Before switching the thread, we first save the information
 		 * of current running. */
 		thread_launch(next);
@@ -703,16 +639,8 @@ allocate_tid(void)
 	return tid;
 }
 
-/* --------------------------------------- project1 -----------------------------------------*/
-/* thread_sleep()
- * 1. 현재 스레드(cur_t)가 idle이 아닌지 체크한다.
- * 2. cur_t 를 blocked로 바꾸고 깨어나야할 ticks(elapsed로 받아온 starts)를 저장한다. 
- * 3. 
-*/
-
 void thread_sleep(int64_t ticks)
 {
-	// printf("\njoin : thread_sleep\n");
 	struct thread *curr = thread_current();
 	enum intr_level old_level;
 	old_level = intr_disable();
@@ -724,7 +652,6 @@ void thread_sleep(int64_t ticks)
 	{
 		list_push_back(&sleep_list, &curr->elem);
 	}
-	// list_push_back(&sleep_list, &curr->elem);
 
 	do_schedule(THREAD_BLOCKED);
 	intr_set_level(old_level);
@@ -741,8 +668,6 @@ int64_t get_next_tick_to_awake(void)
 {
 	return next_tick_to_awake;
 }
-
-
 
 void thread_awake(int64_t ticks)
 {
@@ -766,14 +691,10 @@ void thread_awake(int64_t ticks)
 	}
 }
 
-/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
-	// printf("cmp_priority 1111\n");
 	struct thread *t_a = list_entry(a, struct thread, elem);
-	// printf("cmp_priority 2222\n");
 	struct thread *t_b = list_entry(b, struct thread, elem);
-	// printf("cmp_priority 3333\n");
 
 	return t_a->priority > t_b->priority;
 }
@@ -792,13 +713,7 @@ void test_max_priority(void)
 		thread_yield();
 	}
 }
-/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 
-
-
-
-
-/*-------------------------- project.1-Priority Donation -----------------------------*/
 void donate_priority (void)
 {
 	int cnt = 0;
@@ -850,4 +765,3 @@ void refresh_priority (void)
 		curr->priority = high->priority;
 	}
 }
-/*-------------------------- project.1-Priority Donation -----------------------------*/

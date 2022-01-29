@@ -18,20 +18,7 @@
 /* Number of x86_64 interrupts. */
 #define INTR_CNT 256
 
-/* Creates an gate that invokes FUNCTION.
-
-   The gate has descriptor privilege level DPL, meaning that it
-   can be invoked intentionally when the processor is in the DPL
-   or lower-numbered ring.  In practice, DPL==3 allows user mode
-   to call into the gate and DPL==0 prevents such calls.  Faults
-   and exceptions that occur in user mode still cause gates with
-   DPL==0 to be invoked.
-
-   TYPE must be either 14 (for an interrupt gate) or 15 (for a
-   trap gate).  The difference is that entering an interrupt gate
-   disables interrupts, but entering a trap gate does not.  See
-   [IA32-v3a] section 5.12.1.2 "Flag Usage By Exception- or
-   Interrupt-Handler Procedure" for discussion. */
+/* Creates an gate that invokes FUNCTION.*/
 
 struct gate {
 	unsigned off_15_0 : 16;   // low 16 bits of offset in segment
@@ -48,9 +35,7 @@ struct gate {
 };
 
 /* The Interrupt Descriptor Table (IDT).  The format is fixed by
-   the CPU.  See [IA32-v3a] sections 5.10 "Interrupt Descriptor
-   Table (IDT)", 5.11 "IDT Descriptors", 5.12.1.2 "Flag Usage By
-   Exception- or Interrupt-Handler Procedure". */
+   the CPU. */
 static struct gate idt[INTR_CNT];
 
 static struct desc_ptr idt_desc = {
@@ -233,17 +218,7 @@ intr_register_ext (uint8_t vec_no, intr_handler_func *handler,
 
 /* Registers internal interrupt VEC_NO to invoke HANDLER, which
    is named NAME for debugging purposes.  The interrupt handler
-   will be invoked with interrupt status LEVEL.
-
-   The handler will have descriptor privilege level DPL, meaning
-   that it can be invoked intentionally when the processor is in
-   the DPL or lower-numbered ring.  In practice, DPL==3 allows
-   user mode to invoke the interrupts and DPL==0 prevents such
-   invocation.  Faults and exceptions that occur in user mode
-   still cause interrupts with DPL==0 to be invoked.  See
-   [IA32-v3a] sections 4.5 "Privilege Levels" and 4.8.1.1
-   "Accessing Nonconforming Code Segments" for further
-   discussion. */
+   will be invoked with interrupt status LEVEL.*/
 void
 intr_register_int (uint8_t vec_no, int dpl, enum intr_level level,
 		intr_handler_func *handler, const char *name)

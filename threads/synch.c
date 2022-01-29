@@ -60,7 +60,6 @@ sema_init (struct semaphore *sema, unsigned value) {
    sema_down function. */
 void
 sema_down (struct semaphore *sema) {
-	// printf("sema down 한다???\n");
 	enum intr_level old_level;
 
 	ASSERT (sema != NULL);
@@ -68,11 +67,7 @@ sema_down (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		// list_push_back (&sema->waiters, &thread_current ()->elem);
-		/*-------------------------- project.1-Priority Sync -----------------------------*/
-		// donate_priority(); /* page-merge-mm을 위해 테스트*/
 		list_insert_ordered(&sema->waiters, &thread_current ()->elem, &cmp_priority, NULL);
-		/*-------------------------- project.1-Priority Sync -----------------------------*/
 		thread_block ();
 	}
 	sema->value--;
@@ -111,25 +106,16 @@ sema_try_down (struct semaphore *sema) {
 void
 sema_up (struct semaphore *sema) {
 	enum intr_level old_level;
-	// printf("sema up 한다???\n");
-
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
 	if (!list_empty (&sema->waiters))
 		{
-			/*-------------------------- project.1-Priority Sync -----------------------------*/
 			list_sort(&sema->waiters, &cmp_priority, NULL);
-			/*-------------------------- project.1-Priority Sync -----------------------------*/
 			thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
-        /*-------------------------- project.2-Process -----------------------------*/
-        
-        /*-------------------------- project.2-Process -----------------------------*/
 		}
     sema->value++;
-	/*-------------------------- project.1-Priority Sync -----------------------------*/
 	test_max_priority();
-	/*-------------------------- project.1-Priority Sync -----------------------------*/
 	intr_set_level (old_level);
 }
 
@@ -210,17 +196,11 @@ lock_acquire (struct lock *lock) {
 	{
 		t->wait_on_lock = lock;
 		list_push_back(&lock->holder->donations, &t->donation_elem);
-		// list_insert_ordered(&lock->holder->donations,&t->donation_elem,cmp_priority,NULL);
-		/* cmp_priority 혹은 cmp_sem_priority 중에 하나*/
 		donate_priority(); /*여기 아니면 sema down에서*/
 	}
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	sema_down (&lock->semaphore);
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
-	// lock->holder = thread_current ();
 	t->wait_on_lock = NULL;
 	lock->holder = t;
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -254,10 +234,8 @@ lock_release (struct lock *lock) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	lock->holder = NULL;
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	remove_with_lock(lock);
 	refresh_priority();
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	sema_up (&lock->semaphore);
 }
 
@@ -317,11 +295,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	sema_init (&waiter.semaphore, 0);
-	/*-------------------------- project.1-Priority Sync -----------------------------*/
-	// list_push_back (&cond->waiters, &waiter.elem);
 	list_insert_ordered(&cond->waiters, &waiter.elem, &cmp_sem_priority, NULL);
-	/*-------------------------- project.1-Priority Sync -----------------------------*/
-
 
 	lock_release (lock);
 	sema_down (&waiter.semaphore);
@@ -364,12 +338,10 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 		cond_signal (cond, lock);
 }
 
-/*-------------------------- project.1-Priority Sync -----------------------------*/
 bool cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
 	struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
 	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
-	// printf("cmp_sem_priority")
 	struct list_elem *sa_e = list_begin(&(sa->semaphore.waiters));
 	struct list_elem *sb_e = list_begin(&(sb->semaphore.waiters));
 
@@ -378,4 +350,3 @@ bool cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, voi
 
 	return (sa_t->priority) > (sb_t->priority);
 }
-/*-------------------------- project.1-Priority Sync -----------------------------*/

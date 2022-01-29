@@ -9,30 +9,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 
-/* A simple implementation of malloc().
-
-   The size of each request, in bytes, is rounded up to a power
-   of 2 and assigned to the "descriptor" that manages blocks of
-   that size.  The descriptor keeps a list of free blocks.  If
-   the free list is nonempty, one of its blocks is used to
-   satisfy the request.
-
-   Otherwise, a new page of memory, called an "arena", is
-   obtained from the page allocator (if none is available,
-   malloc() returns a null pointer).  The new arena is divided
-   into blocks, all of which are added to the descriptor's free
-   list.  Then we return one of the new blocks.
-
-   When we free a block, we add it to its descriptor's free list.
-   But if the arena that the block was in now has no in-use
-   blocks, we remove all of the arena's blocks from the free list
-   and give the arena back to the page allocator.
-
-   We can't handle blocks bigger than 2 kB using this scheme,
-   because they're too big to fit in a single page with a
-   descriptor.  We handle those by allocating contiguous pages
-   with the page allocator and sticking the allocation size at
-   the beginning of the allocated block's arena header. */
+/* A simple implementation of malloc(). */
 
 /* Descriptor. */
 struct desc {

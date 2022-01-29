@@ -45,7 +45,7 @@ timer_init (void) {
 	intr_register_ext (0x20, timer_interrupt, "8254 Timer");
 }
 
-/* Calibrates loops_per_tick, used to implement brief delays. calibrate=눈금 맞추다. */
+/* Calibrates loops_per_tick, used to implement brief delays */
 void
 timer_calibrate (void) {
 	unsigned high_bit, test_bit;
@@ -94,8 +94,6 @@ timer_sleep (int64_t ticks) {
 
 	ASSERT (intr_get_level () == INTR_ON);
 	thread_sleep(start+ticks);
-	// while (timer_elapsed (start) < ticks)
-	// 	thread_yield ();
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -130,12 +128,10 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	thread_tick ();
 	int64_t next_tick;
 	next_tick = get_next_tick_to_awake();
-	/*-------------------- Project1 -------------------------------------*/
 	if (ticks >= next_tick)
 	{
 		thread_awake(ticks);
 	}
-	/*-------------------- Project1 -------------------------------------*/
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

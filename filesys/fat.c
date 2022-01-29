@@ -82,7 +82,7 @@ fat_open (void) {
 
 void
 fat_close (void) {
-	// Write FAT boot sector
+	/* Write FAT boot sector */
 	uint8_t *bounce = calloc (1, DISK_SECTOR_SIZE);
 	if (bounce == NULL)
 		PANIC ("FAT close failed");
@@ -90,7 +90,7 @@ fat_close (void) {
 	disk_write (filesys_disk, FAT_BOOT_SECTOR, bounce);
 	free (bounce);
 
-	// Write FAT directly to the disk
+	/* Write FAT directly to the disk */
 	uint8_t *buffer = (uint8_t *) fat_fs->fat;
 	off_t bytes_wrote = 0;
 	off_t bytes_left = sizeof (fat_fs->fat);
@@ -115,19 +115,17 @@ fat_close (void) {
 
 void
 fat_create (void) {
-	// Create FAT boot
 	fat_boot_create ();
 	fat_fs_init ();
 
-	// Create FAT table
 	fat_fs->fat = calloc (fat_fs->fat_length, sizeof (cluster_t));
 	if (fat_fs->fat == NULL)
 		PANIC ("FAT creation failed");
 
-	// Set up ROOT_DIR_CLST
+	/* Set up ROOT_DIR_CLST */
 	fat_put (ROOT_DIR_CLUSTER, EOChain);
 
-	// Fill up ROOT_DIR_CLUSTER region with 0
+	/* Fill up ROOT_DIR_CLUSTER region with 0 */
 	uint8_t *buf = calloc (1, DISK_SECTOR_SIZE);
 	if (buf == NULL)
 		PANIC ("FAT create failed due to OOM");
@@ -152,20 +150,13 @@ fat_boot_create (void) {
 
 void
 fat_fs_init (void) {
-	/* TODO: Your code goes here. */
 	fat_fs->fat_length = fat_fs->bs.total_sectors / SECTORS_PER_CLUSTER;
 	fat_fs->data_start = fat_fs->bs.fat_start + 1;
 	fat_fs->last_clst = fat_fs->fat_length - 1;
 	lock_init(&fat_fs->write_lock);
 }
 
-/*----------------------------------------------------------------------------*/
-/* FAT handling                                                               */
-/*----------------------------------------------------------------------------*/
 
-/* Add a cluster to the chain.
- * If CLST is 0, start a new chain.
- * Returns 0 if fails to allocate a new cluster. */
 cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
@@ -189,7 +180,6 @@ fat_create_chain (cluster_t clst) {
  * If PCLST is 0, assume CLST as the start of the chain. */
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
-	/* TODO: Your code goes here. */
 	if (clst == 0) 
 		return;
 
@@ -216,21 +206,18 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 /* Update a value in the FAT table. */
 void
 fat_put (cluster_t clst, cluster_t val) {
-	/* TODO: Your code goes here. */
 	fat_fs->fat[clst] = val;
 }
 
 /* Fetch a value in the FAT table. */
 cluster_t
 fat_get (cluster_t clst) {
-	/* TODO: Your code goes here. */
 	return fat_fs->fat[clst];
 }
 
 /* Covert a cluster # to a sector number. */
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
-	/* TODO: Your code goes here. */
 	if (clst < 0)
 		return 0;
 	return clst;

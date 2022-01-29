@@ -211,21 +211,6 @@ list_push_back (struct list *list, struct list_elem *elem) {
    on ELEM after removal yields undefined behavior.  This means
    that a naive loop to remove the elements in a list will fail:
 
- ** DON'T DO THIS **
- for (e = list_begin (&list); e != list_end (&list); e = list_next (e))
- {
- ...do something with e...
- list_remove (e);
- }
- ** DON'T DO THIS **
-
- Here is one correct way to iterate and remove elements from a
-list:
-
-for (e = list_begin (&list); e != list_end (&list); e = list_remove (e))
-{
-...do something with e...
-}
 
 If you need to free() elements of the list then you need to be
 more conservative.  Here's an alternate strategy that works

@@ -79,22 +79,18 @@ inode_create (disk_sector_t sector, off_t length) {
 		size_t sectors = bytes_to_sectors (length);
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
-		// printf("inode_create 어디서 나오나 111\n");
 		if (free_map_allocate (sectors, &disk_inode->start)) {
 			disk_write (filesys_disk, sector, disk_inode);
 			if (sectors > 0) {
 				static char zeros[DISK_SECTOR_SIZE];
 				size_t i;
-				// printf("inode_create 어디서 나오나 222\n");
 				for (i = 0; i < sectors; i++) 
 					disk_write (filesys_disk, disk_inode->start + i, zeros); 
 			}
 			success = true; 
 		} 
-		// printf("inode_create 어디서 나오나 333\n");
 		free (disk_inode);
 	}
-	// printf("inode_create 어디서 나오나 4444\n");
 	return success;
 }
 
@@ -217,7 +213,6 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 			memcpy (buffer + bytes_read, bounce + sector_ofs, chunk_size);
 		}
 
-		/* Advance. */
 		size -= chunk_size;
 		offset += chunk_size;
 		bytes_read += chunk_size;
@@ -228,19 +223,15 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 
 /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
  * Returns the number of bytes actually written, which may be
- * less than SIZE if end of file is reached or an error occurs.
- * (Normally a write at end of file would extend the inode, but
- * growth is not yet implemented.) */
+ * less than SIZE if end of file is reached or an error occurs. */
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		off_t offset) {
 	const uint8_t *buffer = buffer_;
 	off_t bytes_written = 0;
 	uint8_t *bounce = NULL;
-	// printf("inode_write_at 에서 offset %d\n",offset);
 	if (inode->deny_write_cnt)
 		return 0;
-	// printf("inode_write_at  2222\n");
 	while (size > 0) {
 		/* Sector to write, starting byte offset within sector. */
 		disk_sector_t sector_idx = byte_to_sector (inode, offset);
@@ -260,7 +251,6 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 			/* Write full sector directly to disk. */
 			disk_write (filesys_disk, sector_idx, buffer + bytes_written); 
 		} else {
-			/* We need a bounce buffer. */
 			if (bounce == NULL) {
 				bounce = malloc (DISK_SECTOR_SIZE);
 				if (bounce == NULL)
@@ -277,8 +267,6 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 			memcpy (bounce + sector_ofs, buffer + bytes_written, chunk_size);
 			disk_write (filesys_disk, sector_idx, bounce); 
 		}
-
-		/* Advance. */
 		size -= chunk_size;
 		offset += chunk_size;
 		bytes_written += chunk_size;

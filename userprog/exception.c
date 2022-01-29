@@ -14,13 +14,6 @@ static void page_fault (struct intr_frame *);
 
 /* Registers handlers for interrupts that can be caused by user
    programs.
-
-   In a real Unix-like OS, most of these interrupts would be
-   passed along to the user process in the form of signals, as
-   described in [SV-386] 3-24 and 3-25, but we don't implement
-   signals.  Instead, we'll make them simply kill the user
-   process.
-
    Page faults are an exception.  Here they are treated the same
    way as other exceptions, but this will need to change to
    implement virtual memory.
@@ -71,11 +64,8 @@ static void
 kill (struct intr_frame *f) {
 	/* This interrupt is one (probably) caused by a user process.
 	   For example, the process might have tried to access unmapped
-	   virtual memory (a page fault).  For now, we simply kill the
-	   user process.  Later, we'll want to handle page faults in
-	   the kernel.  Real Unix-like operating systems pass most
-	   exceptions back to the process via signals, but we don't
-	   implement them. */
+	   virtual memory (a page fault). we simply kill the
+	   user process.*/
 
 	/* The interrupt frame's code segment value tells us where the
 	   exception originated. */
@@ -116,16 +106,12 @@ kill (struct intr_frame *f) {
    can find more information about both of these in the
    description of "Interrupt 14--Page Fault Exception (#PF)" in
    [IA32-v3a] section 5.15 "Exception and Interrupt Reference". */
-//페이지폴트
 static void
 page_fault (struct intr_frame *f) {
 	bool not_present;  /* True: not-present page, false: writing r/o page. */
 	bool write;        /* True: access was write, false: access was read. */
 	bool user;         /* True: access by user, false: access by kernel. */
 	void *fault_addr;  /* Fault address. */
-	// printf("---debug//\n" );
-	// printf("---debug// page_fault // rsp : %p \n", f->rsp );
-	// printf("---debug//\n" );
 
 	/* Obtain faulting address, the virtual address that was
 	   accessed to cause the fault.  It may point to code or to
@@ -144,13 +130,9 @@ page_fault (struct intr_frame *f) {
 	write = (f->error_code & PF_W) != 0;
 	user = (f->error_code & PF_U) != 0;
 
-    // exit(-1); // for project 2
-
 #ifdef VM
-	/* For project 3 and later. */
 	if (vm_try_handle_fault (f, fault_addr, user, write, not_present))
 	{
-		// printf("---debug// Page_fault_handle // return true\n");
 		return;
 	}
 
@@ -158,35 +140,18 @@ page_fault (struct intr_frame *f) {
 
 	/* Count page faults. */
 	page_fault_cnt++;
-
-
-    /*-------------------------- project.2-System Call -----------------------------*/
-	// printf("page fault 났나? 어디서?111\n");
     if (user == 0 || !(is_user_vaddr(fault_addr))) {
         exit(-1);
     }
-    // if (write == 1) {
-    //     exit(-1);
-    // }
-	// printf("page fault 났나? 어디서?222\n");
-	// printf("not present는??? %d\n", not_present);
     if (not_present == 1) {
         exit(-1);
     }
-	// printf("page fault 났나? 어디서?333\n");
     if (fault_addr == NULL) {
         exit(-1);
     }
-	// printf("page fault 났나? 어디서?444\n");
     if (fault_addr == 0) {
         exit(-1);
     }
-	// printf("page fault 났나? 어디서?555\n");
-    /*-------------------------- project.2-System Call -----------------------------*/
-
-
-
-
 
 	/* If the fault is true fault, show info and exit. */
 	printf ("Page fault at %p: %s error %s page in %s context.\n",

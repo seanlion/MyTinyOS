@@ -23,24 +23,17 @@ test_main (void)
     size_t i, handle;
     char *actual = (char *) 0x10000000;
     void *map;
-    // printf("swap-iter 시작1111\n");
     for (i = 0 ; i < PAGE_COUNT ; i++) {
         if ((i & 0x1ff) == 0)
             msg ("write sparsely over page %zu", i);
         big_chunks[i*PAGE_SIZE] = (char) i;
     }
-    // printf("swap-iter 시작2222\n");
     CHECK ((handle = open ("large.txt")) > 1, "open \"large.txt\"");
-    // printf("sizeof(large)는 ?? %ld \n",sizeof(large));
-    // printf("iter 테케에서 mmap 시작\n");
     CHECK ((map = mmap (actual, sizeof(large), 0, handle, 0)) != MAP_FAILED, "mmap \"large.txt\"");
 
     /* Read in file map'd page */
     if (memcmp (actual, large, strlen (large)))
         fail ("read of mmap'd file reported bad data");
-    // PANIC("swap iter의 memcmp 뒤\n");
-
-    // printf("iter 테케에서 memcmp 통과\n");
     /* Read in anon page */
     for (i = 0; i < PAGE_COUNT; i++) {
         if (big_chunks[i*PAGE_SIZE] != (char) i)

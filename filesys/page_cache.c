@@ -5,7 +5,6 @@ static bool page_cache_readahead (struct page *page, void *kva);
 static bool page_cache_writeback (struct page *page);
 static void page_cache_destroy (struct page *page);
 
-/* DO NOT MODIFY this struct */
 static const struct page_operations page_cache_op = {
 	.swap_in = page_cache_readahead,
 	.swap_out = page_cache_writeback,
@@ -18,7 +17,6 @@ tid_t page_cache_workerd;
 /* The initializer of file vm */
 void
 pagecache_init (void) {
-	/* TODO: Create a worker daemon for page cache with page_cache_kworkerd */
 }
 
 /* Initialize the page cache */

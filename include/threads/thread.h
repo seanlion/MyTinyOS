@@ -99,15 +99,10 @@ struct thread {
 	// 깨어나야할 tick 저장 (wakeup_tick)
 	int64_t wakeup_tick;
 
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
 	int init_priority;
 	struct lock *wait_on_lock;
 	struct list donations;
 	struct list_elem donation_elem;
-	/*-------------------------- project.1-Priority Donation -----------------------------*/
-	
-
-    /*-------------------------- project.2-Parsing -----------------------------*/
     struct thread *parent_t;
     struct list_elem child_elem;
     struct list my_child;
@@ -119,22 +114,13 @@ struct thread {
     int exit_status;
 	struct intr_frame fork_tf;
     int next_fd;
-    // struct file* fd_table[512];
     struct file* fd_table[64];
-	 /*-------------------------- project.2-Denying write -----------------------------*/
 	struct file* running_file;
-
-    /*-------------------------- project.2-Parsing -----------------------------*/
-
-
     
 
 #ifdef USERPROG
-	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
-    /*-------------------------- project.2-Process -----------------------------*/
     bool fork_fail;
-    /*-------------------------- project.2-Process -----------------------------*/
 
 
 
@@ -143,11 +129,8 @@ struct thread {
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
-
-	/* ---------------------- >> Project.3 Stack >> ---------------------------- */
 	uint64_t t_rsp;
 	void * stack_bottom;
-	/* ---------------------- << Project.3 Stack << ---------------------------- */
 #endif
 
 	/* Owned by thread.c. */
@@ -196,20 +179,13 @@ void do_iret (struct intr_frame *tf);
  void thread_awake(int64_t);
  void update_next_tick_to_awake(int64_t);
  int64_t get_next_tick_to_awake(void);
-/*-------------------------- project.1-Alarm_Clock -----------------------------*/
-
-/*-------------------------- project.1-Priority Scheduling -----------------------------*/
 // 현재 수행중인 스레드와 가장 높은 우선순위의 스레드의 우선순위를 비교하여 스케줄링
 void test_max_priority(void);
 
 // 인자로 주어진 스레드들의 우선순위를 비교
 bool cmp_priority (const struct list_elem *, const struct list_elem *, void *);
-/*-------------------------- project.1-Priority Scheduling -----------------------------*/
-
-/*-------------------------- project.1-Priority Donation -----------------------------*/
 void donate_priority (void);
 void remove_with_lock (struct lock *);
 void refresh_priority (void);
-/*-------------------------- project.1-Priority Donation -----------------------------*/
 
 #endif /* threads/thread.h */

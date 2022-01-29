@@ -25,5 +25,6 @@
         "thread.h": "c",
         "algorithm": "c",
         "disk.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

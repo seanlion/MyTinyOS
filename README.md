@@ -1,29 +1,33 @@
-My Tiny OS
----
+# Tiny OS
 
-## 프로젝트 기간
-2021.03 ~ 2021.04
+## Project Duration
+Feb 2021 – Mar 2021
 
-## 설명
-- 나만의 OS 만들기(PintOS)
-- 주요 기능 구현
-    - Alarm Clock
-    - Priority Scheduling
-    - Argument Passing
-    - User Memory Access
-    - System Calls
-    - Process Termination Message
-    - Virtual Memory Management(Page, Page Table)
-    - Page Initialization with Lazy Loading
-    - Page Cleanup
-    - Anonymous page
-    - Memory-mapped page
-    - Swap In/Out
-    - Indexed and Extensible Files
-    - Subdirectories
-    - Symlink
+## Overview
+A small operating system built on top of **Pintos**. Implemented the following key features:
 
-## 빌드 & 테스트
+### Features
+- **Alarm Clock** – thread sleep/wake based on timer ticks  
+- **Priority Scheduling** – schedule threads by priority  
+- **Argument Passing** – pass command-line arguments to user programs  
+- **User Memory Access**   
+- **System Calls**  
+- **Process Termination Message**
+
+### Virtual Memory
+- **Virtual Memory Management** (pages, page table)  
+- **Lazy Loading** – initialize pages on-demand  
+- **Page Cleanup** – reclaim resources on eviction/exit  
+- **Anonymous Page**
+- **Memory-Mapped Page** 
+- **Swap In/Out**
+
+### File System
+- **Indexed & Extensible Files**  
+- **Subdirectories** 
+- **Symlink**
+  
+## Build & Test
 - compile & build : type `source ./activate`.
-- testing : change directory to each folder(filesys, threads, userprog, vm) and type `make check`.
-    - 개별 테스팅 : `pintos -- -q run {test file}` (ex.alarm-multiple) / tests 폴더 참고
+- test : change directory to each folder(filesys, threads, userprog, vm) and type `make check`.
+    - Individual testing: `pintos -- -q run {test_file}` (e.g., `alarm-multiple`). See the `tests` directory.
